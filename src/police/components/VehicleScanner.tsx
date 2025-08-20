@@ -39,6 +39,9 @@ const VehicleScanner = () => {
   const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [captureFlash, setCaptureFlash] = useState(false);
+  const [plateDetectedFromImage, setPlateDetectedFromImage] = useState(false);
   const autoStartRef = useRef(false);
 
   const {
@@ -54,7 +57,7 @@ const VehicleScanner = () => {
 
   // Auto-start detection when camera becomes active
   useEffect(() => {
-    console.log('🔄 Auto-start check - Camera:', cameraActive, 'Scanning:', isScanning, 'Interval:', !!scanInterval);
+    console.log('���� Auto-start check - Camera:', cameraActive, 'Scanning:', isScanning, 'Interval:', !!scanInterval);
 
     if (cameraActive && !isScanning && !scanInterval) {
       console.log('🚀 Camera is active and not scanning, auto-starting plate detection...');
@@ -338,7 +341,7 @@ const VehicleScanner = () => {
         }, 3000);
       } else {
         if (result) {
-          console.log('❌ Detection failed confidence check:', {
+          console.log('��� Detection failed confidence check:', {
             detected: result.plateNumber,
             confidence: `${Math.round(result.confidence * 100)}% (need >${Math.round(minConfidence * 100)}%)`,
             ocrConfidence: `${Math.round((result.ocrConfidence || 0) * 100)}% (need >${Math.round(minOcrConfidence * 100)}%)`,
@@ -463,7 +466,8 @@ const VehicleScanner = () => {
   const handleManualLookup = async () => {
     if (plateInput.trim()) {
       setIsScanning(true);
-      
+      setPlateDetectedFromImage(false); // This is manual entry, not detected from image
+
       try {
         const result = await lookupVehicle(plateInput.trim());
         
@@ -505,7 +509,7 @@ const VehicleScanner = () => {
   };
 
   const handleCapturePlate = async () => {
-    console.log('📸 Capture button clicked - performing single plate detection');
+    console.log('📸 Capture button clicked - capturing image then performing plate detection');
 
     if (!cameraActive) {
       console.warn('❌ Camera not active, cannot capture');
@@ -519,76 +523,194 @@ const VehicleScanner = () => {
       return;
     }
 
-    // Reset scan results before capture
+    // First, capture the current camera frame
+    console.log('📷 Capturing current camera frame...');
+
+    // Trigger capture flash effect
+    setCaptureFlash(true);
+    setTimeout(() => setCaptureFlash(false), 200); // Flash for 200ms
+
+    const frame = captureFrame();
+    if (!frame) {
+      console.warn('❌ Failed to capture camera frame');
+      alert('Failed to capture camera image. Please try again.');
+      return;
+    }
+
+    // Convert canvas to data URL for storage/display
+    const imageDataUrl = frame.toDataURL('image/jpeg', 0.8);
+    console.log('✅ Camera frame captured successfully');
+    console.log('📊 Image data URL length:', imageDataUrl.length);
+    console.log('📊 Image data format:', imageDataUrl.substring(0, 50));
+
+    // Set the captured image in state for processing (hidden from user)
+    setCapturedImage(imageDataUrl);
+
+    // Show analysis in progress
     setScanResults({
-      plateNumber: 'Capturing...',
-      vehicleModel: 'Scanning',
+      plateNumber: 'Analyzing...',
+      vehicleModel: 'Processing',
       owner: 'Please wait',
-      status: 'Processing',
+      status: 'AI Analysis in Progress',
       statusType: 'clean'
     });
 
-    console.log('🎯 Starting single license plate capture and detection...');
-
-    // Set a definitive timeout to reset results
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Capture timeout - resetting to N/A');
-      setScanResults({
-        plateNumber: 'N/A',
-        vehicleModel: 'N/A',
-        owner: 'N/A',
-        status: 'No Plate Detected',
-        statusType: 'clean'
-      });
-    }, 6000); // 6 second timeout
+    console.log('🎯 Starting license plate detection on captured image...');
 
     try {
-      // Perform the detection with timeout
-      console.log('🔍 Starting detection for capture...');
-      const detectionResult = await Promise.race([
-        performPlateDetection(),
-        new Promise(resolve => setTimeout(() => {
-          console.log('⏰ Detection timeout reached for capture');
-          resolve(null);
-        }, 5000)) // 5 second detection timeout
-      ]);
+      // Analyze the captured image directly
+      console.log('🔍 Analyzing captured image for plate detection...');
 
-      console.log('🎯 Detection result for capture:', detectionResult);
+      let result = null;
 
-      // Clear the timeout since we got a result (or detection completed)
-      clearTimeout(timeoutId);
+      // Try using the captured canvas directly first (most reliable)
+      console.log('🎨 Attempting detection using captured canvas directly...');
+      try {
+        console.log('✅ Using captured canvas for detection:', { width: frame.width, height: frame.height });
 
-      // Always check if scan results need to be reset after a short delay
-      setTimeout(() => {
-        setScanResults(current => {
-          console.log('🔄 Checking scan results after detection:', current);
-          if (current.plateNumber === 'Capturing...' ||
-              current.plateNumber === 'Processing' ||
-              current.plateNumber === 'Scanning') {
-            console.log('📝 Detection completed but no valid plate found - resetting to N/A');
-            return {
-              plateNumber: 'N/A',
+        switch (detectorType) {
+          case 'gemini':
+            result = await geminiPlateDetector.detectPlate(frame);
+            break;
+          case 'custom':
+            result = await customYOLODetector.detectPlate(frame);
+            break;
+          case 'yolo':
+            result = await yoloPlateDetector.detectPlate(frame);
+            break;
+          case 'simple':
+            result = await simplePlateDetector.detectPlate(frame);
+            break;
+          default:
+            result = await geminiPlateDetector.detectPlate(frame);
+        }
+      } catch (canvasError) {
+        console.warn('❌ Canvas detection failed, trying Image element approach:', canvasError);
+
+        // Fallback: Create an image element from the captured image data URL
+        console.log('🖼️ Fallback: Creating image from captured data URL...');
+        console.log('📊 Image data URL length:', imageDataUrl.length);
+        console.log('📊 Image data type:', imageDataUrl.substring(0, 50));
+
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            console.log('✅ Image loaded successfully:', { width: img.width, height: img.height });
+            resolve(img);
+          };
+          img.onerror = (errorEvent) => {
+            console.error('❌ Image loading failed:', errorEvent);
+            reject(new Error(`Failed to load captured image: ${errorEvent.type}`));
+          };
+          img.src = imageDataUrl;
+        });
+
+        // Try detection on the image element
+        switch (detectorType) {
+          case 'gemini':
+            result = await geminiPlateDetector.detectPlate(img);
+            break;
+          case 'custom':
+            result = await customYOLODetector.detectPlate(img);
+            break;
+          case 'yolo':
+            result = await yoloPlateDetector.detectPlate(img);
+            break;
+          case 'simple':
+            result = await simplePlateDetector.detectPlate(img);
+            break;
+          default:
+            result = await geminiPlateDetector.detectPlate(img);
+        }
+      }
+
+      console.log('🎯 Detection result for captured image:', result);
+
+      // Process the detection result
+      if (result && result.plateNumber) {
+        console.log('✅ Plate detected from captured image:', result);
+        console.log('📊 Detection confidence:', result.confidence);
+
+        // Always show the detected plate number, regardless of confidence
+        const detectedPlateNumber = result.plateNumber;
+
+        // Mark that we detected a plate from the image
+        setPlateDetectedFromImage(true);
+
+        // Set initial results showing the detected plate number
+        setScanResults({
+          plateNumber: detectedPlateNumber,
+          vehicleModel: 'Looking up...',
+          owner: 'Please wait...',
+          status: 'Checking Database',
+          statusType: 'clean'
+        });
+
+        // Brief delay to show the plate number was detected
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Lookup detected plate in database
+        try {
+          const lookup = await lookupVehicle(detectedPlateNumber);
+          if (lookup && lookup.vehicle) {
+            // Vehicle found in database - show all details
+            const vehicle = lookup.vehicle;
+            setScanResults({
+              plateNumber: detectedPlateNumber, // Keep showing detected plate
+              vehicleModel: `${vehicle.year || vehicle.year_of_manufacture || ''} ${vehicle.make || vehicle.manufacturer || ''} ${vehicle.model || ''}`.trim() || 'Unknown',
+              owner: vehicle.owner_name || 'Unknown',
+              status: lookup.outstandingViolations > 0 ? `${lookup.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
+              statusType: lookup.outstandingViolations > 0 ? 'violation' : 'clean'
+            });
+            setDetectionResult(result); // Show detection overlay on camera
+          } else {
+            // Vehicle NOT found in database - show detected plate but N/A for other info
+            setScanResults({
+              plateNumber: detectedPlateNumber,
               vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'No Plate Detected',
-              statusType: 'clean'
-            };
+              status: 'Not Registered',
+              statusType: 'violation'
+            });
+            setDetectionResult(null); // Don't show detection overlay if not registered
           }
-          return current;
+        } catch (lookupError) {
+          console.error('Lookup failed after detection:', lookupError);
+          // Database error - show detected plate but indicate error
+          setScanResults({
+            plateNumber: detectedPlateNumber,
+            vehicleModel: 'N/A',
+            owner: 'N/A',
+            status: 'Database Error',
+            statusType: 'violation'
+          });
+          setDetectionResult(null);
+        }
+      } else {
+        console.log('❌ No plate detected');
+        setPlateDetectedFromImage(false);
+        setScanResults({
+          plateNumber: 'N/A',
+          vehicleModel: 'N/A',
+          owner: 'N/A',
+          status: 'No Plate Found',
+          statusType: 'clean'
         });
-      }, 2000); // Increased delay to 2 seconds to allow detection to complete
+        setDetectionResult(null);
+      }
 
-      console.log('✅ Single capture completed');
+      console.log('✅ Captured image analysis completed');
     } catch (error) {
-      console.error('❌ Capture failed:', error);
-      clearTimeout(timeoutId);
+      console.error('❌ Analysis failed:', error);
+      setPlateDetectedFromImage(false);
       setScanResults({
         plateNumber: 'N/A',
         vehicleModel: 'N/A',
         owner: 'N/A',
-        status: 'Detection Failed',
+        status: 'Analysis Failed',
         statusType: 'clean'
       });
+      setDetectionResult(null);
     }
   };
 
@@ -754,6 +876,11 @@ const VehicleScanner = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Capture Flash Effect */}
+                {captureFlash && (
+                  <div className="absolute inset-0 bg-white opacity-80 animate-ping pointer-events-none rounded-lg"></div>
+                )}
               </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -1021,6 +1148,7 @@ const VehicleScanner = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };
