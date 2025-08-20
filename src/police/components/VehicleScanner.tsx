@@ -645,6 +645,9 @@ const VehicleScanner = () => {
         // Always show the detected plate number, regardless of confidence
         const detectedPlateNumber = result.plateNumber;
 
+        // Mark that we detected a plate from the image
+        setPlateDetectedFromImage(true);
+
         // Set initial results showing the detected plate number
         setScanResults({
           plateNumber: detectedPlateNumber,
