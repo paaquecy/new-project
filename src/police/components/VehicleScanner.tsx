@@ -56,7 +56,7 @@ const VehicleScanner = () => {
 
   // Auto-start detection when camera becomes active
   useEffect(() => {
-    console.log('🔄 Auto-start check - Camera:', cameraActive, 'Scanning:', isScanning, 'Interval:', !!scanInterval);
+    console.log('���� Auto-start check - Camera:', cameraActive, 'Scanning:', isScanning, 'Interval:', !!scanInterval);
 
     if (cameraActive && !isScanning && !scanInterval) {
       console.log('🚀 Camera is active and not scanning, auto-starting plate detection...');
@@ -569,24 +569,31 @@ const VehicleScanner = () => {
 
       let result = null;
 
-      // Try detection on the captured frame using the appropriate detector
+      // Create an image element from the captured image data URL
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = capturedImage;
+      });
+
+      // Try detection on the captured image using the appropriate detector
       try {
         switch (detectorType) {
           case 'gemini':
-            // For Gemini, we need to convert the captured image to the right format
-            result = await geminiPlateDetector.detectPlateFromImage(capturedImage);
+            result = await geminiPlateDetector.detectPlate(img);
             break;
           case 'custom':
-            result = await customYOLODetector.detectPlate(videoRef.current);
+            result = await customYOLODetector.detectPlate(img);
             break;
           case 'yolo':
-            result = await yoloPlateDetector.detectPlate(videoRef.current);
+            result = await yoloPlateDetector.detectPlate(img);
             break;
           case 'simple':
-            result = await simplePlateDetector.detectPlate(videoRef.current);
+            result = await simplePlateDetector.detectPlate(img);
             break;
           default:
-            result = await geminiPlateDetector.detectPlateFromImage(capturedImage);
+            result = await geminiPlateDetector.detectPlate(img);
         }
       } catch (detectionError) {
         console.error('Detection failed on captured image:', detectionError);
