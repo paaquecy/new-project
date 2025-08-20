@@ -230,12 +230,15 @@ const VehicleScanner = () => {
 
     try {
       console.log('🎯 Running plate detection attempt #', detectionAttempts + 1, 'with',
+        detectorType === 'gemini' ? 'Gemini Vision API' :
         detectorType === 'custom' ? 'custom trained model' :
         detectorType === 'yolo' ? 'standard YOLOv8 + EasyOCR' : 'simple detector');
 
       let result;
       const detectionPromise = (async () => {
         switch (detectorType) {
+          case 'gemini':
+            return await geminiPlateDetector.detectPlate(videoRef.current);
           case 'custom':
             return await customYOLODetector.detectPlate(videoRef.current);
           case 'yolo':
@@ -243,17 +246,19 @@ const VehicleScanner = () => {
           case 'simple':
             return await simplePlateDetector.detectPlate(videoRef.current);
           default:
-            return await customYOLODetector.detectPlate(videoRef.current);
+            return await geminiPlateDetector.detectPlate(videoRef.current);
         }
       })();
 
       // Race between detection and timeout
       result = await Promise.race([detectionPromise, detectionTimeout]);
 
-      // Adjust confidence thresholds based on detector type (lowered for better detection)
-      const minConfidence = detectorType === 'custom' ? 0.4 :
+      // Adjust confidence thresholds based on detector type
+      const minConfidence = detectorType === 'gemini' ? 0.7 :
+                           detectorType === 'custom' ? 0.4 :
                            detectorType === 'yolo' ? 0.3 : 0.35;
-      const minOcrConfidence = detectorType === 'custom' ? 0.5 :
+      const minOcrConfidence = detectorType === 'gemini' ? 0.8 :
+                              detectorType === 'custom' ? 0.5 :
                               detectorType === 'yolo' ? 0.4 : 0.45;
 
       console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
