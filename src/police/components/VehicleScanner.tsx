@@ -277,12 +277,12 @@ const VehicleScanner = () => {
             // Keep detection result for camera overlay only if vehicle is registered
             setDetectionResult(result);
           } else {
-            // Not found in database => mark as Invalid and clear detection result
+            // Not found in database => show detected plate but mark as not registered
             setScanResults({
-              plateNumber: 'Invalid',
-              vehicleModel: 'Vehicle Not Registered',
+              plateNumber: result.plateNumber, // Show what was actually detected
+              vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'Invalid License Plate',
+              status: 'Not Registered',
               statusType: 'violation'
             });
 
@@ -292,10 +292,10 @@ const VehicleScanner = () => {
         } catch (e) {
           console.error('Lookup failed after detection:', e);
           setScanResults({
-            plateNumber: 'Error',
-            vehicleModel: 'Lookup Failed',
-            owner: 'Error',
-            status: 'System Error',
+            plateNumber: result.plateNumber, // Show what was actually detected
+            vehicleModel: 'N/A',
+            owner: 'N/A',
+            status: 'Database Error',
             statusType: 'violation'
           });
 
