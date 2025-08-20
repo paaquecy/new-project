@@ -428,12 +428,12 @@ const VehicleScanner = () => {
           // Record the scan in database
           await api.recordScan(plateInput.trim(), 'Manual', result);
         } else {
-          // Vehicle not found in database - show as N/A
+          // Vehicle not found in database - show as Not Registered
           setScanResults({
             plateNumber: plateInput.trim(),
             vehicleModel: 'N/A',
             owner: 'N/A',
-            status: 'Not Found in Database',
+            status: 'Not Registered',
             statusType: 'violation'
           });
         }
