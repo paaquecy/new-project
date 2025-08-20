@@ -931,10 +931,12 @@ const VehicleScanner = () => {
             Scan Results
             {detectionResult && (
               <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                detectorType === 'gemini' ? 'bg-blue-100 text-blue-700' :
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'custom' ? 'Custom Model' :
+                {detectorType === 'gemini' ? 'Gemini Vision AI' :
+                 detectorType === 'custom' ? 'Custom Model' :
                  detectorType === 'yolo' ? 'YOLOv8 + EasyOCR' : 'Simple Detection'}
               </span>
             )}
