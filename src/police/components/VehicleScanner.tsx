@@ -529,28 +529,32 @@ const VehicleScanner = () => {
     setTimeout(() => setCaptureFlash(false), 200); // Flash for 200ms
 
     const frame = captureFrame();
-    if (frame) {
-      // Convert canvas to data URL for storage/display
-      const imageDataUrl = frame.toDataURL('image/jpeg', 0.8);
-      setCapturedImage(imageDataUrl);
-      console.log('✅ Camera frame captured successfully');
-
-      // Show brief notification that image was captured
-      setScanResults({
-        plateNumber: 'Image Captured',
-        vehicleModel: 'Starting Analysis',
-        owner: 'Please wait',
-        status: 'Processing',
-        statusType: 'clean'
-      });
-
-      // Brief delay to show the capture feedback
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } else {
+    if (!frame) {
       console.warn('❌ Failed to capture camera frame');
       alert('Failed to capture camera image. Please try again.');
       return;
     }
+
+    // Convert canvas to data URL for storage/display
+    const imageDataUrl = frame.toDataURL('image/jpeg', 0.8);
+    console.log('✅ Camera frame captured successfully');
+    console.log('📊 Image data URL length:', imageDataUrl.length);
+    console.log('📊 Image data format:', imageDataUrl.substring(0, 50));
+
+    // Set the captured image in state for display
+    setCapturedImage(imageDataUrl);
+
+    // Show brief notification that image was captured
+    setScanResults({
+      plateNumber: 'Image Captured',
+      vehicleModel: 'Starting Analysis',
+      owner: 'Please wait',
+      status: 'Processing',
+      statusType: 'clean'
+    });
+
+    // Brief delay to show the capture feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Reset scan results before detection
     setScanResults({
@@ -562,32 +566,6 @@ const VehicleScanner = () => {
     });
 
     console.log('🎯 Starting license plate detection on captured image...');
-
-    // Validate captured image exists and is valid
-    if (!capturedImage) {
-      console.error('❌ No captured image available for analysis');
-      setScanResults({
-        plateNumber: 'N/A',
-        vehicleModel: 'N/A',
-        owner: 'N/A',
-        status: 'No Image Captured',
-        statusType: 'clean'
-      });
-      return;
-    }
-
-    // Validate the data URL format
-    if (!capturedImage.startsWith('data:image/')) {
-      console.error('❌ Invalid image data format:', capturedImage.substring(0, 50));
-      setScanResults({
-        plateNumber: 'N/A',
-        vehicleModel: 'N/A',
-        owner: 'N/A',
-        status: 'Invalid Image Format',
-        statusType: 'clean'
-      });
-      return;
-    }
 
     try {
       // Analyze the captured image directly
