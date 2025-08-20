@@ -15,6 +15,7 @@ import { useCamera } from '../hooks/useCamera';
 import { yoloPlateDetector, PlateDetectionResult } from '../utils/yoloPlateDetection';
 import { simplePlateDetector } from '../utils/simplePlateDetection';
 import { customYOLODetector } from '../utils/customModelDetection';
+import { geminiPlateDetector } from '../utils/geminiPlateDetection';
 import { useData } from '../../contexts/DataContext';
 import DetectionMetrics from './DetectionMetrics';
 
@@ -35,7 +36,7 @@ const VehicleScanner = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [usingSimpleDetector, setUsingSimpleDetector] = useState(false);
   const [usingCustomModel, setUsingCustomModel] = useState(false);
-  const [detectorType, setDetectorType] = useState<'custom' | 'yolo' | 'simple'>('custom');
+  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
   const autoStartRef = useRef(false);
@@ -103,10 +104,23 @@ const VehicleScanner = () => {
     checkPermissions();
   }, []);
 
-  // Initialize detection system with custom model priority
+  // Initialize detection system with Gemini priority
   useEffect(() => {
     const initializeDetector = async () => {
-      // Try custom model first (your trained model)
+      // Try Gemini Vision API first
+      try {
+        console.log('Starting Gemini Vision API initialization...');
+        await geminiPlateDetector.initialize();
+        console.log('Gemini Vision API initialized successfully');
+        setDetectorType('gemini');
+        setUsingCustomModel(false);
+        setUsingSimpleDetector(false);
+        return;
+      } catch (error) {
+        console.warn('Failed to initialize Gemini detector, trying custom model:', error);
+      }
+
+      // Fallback to custom model
       try {
         console.log('Starting custom YOLO detector initialization...');
         await customYOLODetector.initialize();
@@ -149,6 +163,9 @@ const VehicleScanner = () => {
     return () => {
       // Cleanup based on which detector is active
       switch (detectorType) {
+        case 'gemini':
+          geminiPlateDetector.cleanup();
+          break;
         case 'custom':
           customYOLODetector.cleanup();
           break;
@@ -203,30 +220,45 @@ const VehicleScanner = () => {
       return;
     }
 
+    // Add timeout wrapper to prevent infinite processing
+    const detectionTimeout = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.log('⏰ Detection attempt timed out after 8 seconds');
+        resolve(null);
+      }, 8000);
+    });
+
     try {
       console.log('🎯 Running plate detection attempt #', detectionAttempts + 1, 'with',
+        detectorType === 'gemini' ? 'Gemini Vision API' :
         detectorType === 'custom' ? 'custom trained model' :
         detectorType === 'yolo' ? 'standard YOLOv8 + EasyOCR' : 'simple detector');
 
       let result;
-      switch (detectorType) {
-        case 'custom':
-          result = await customYOLODetector.detectPlate(videoRef.current);
-          break;
-        case 'yolo':
-          result = await yoloPlateDetector.detectPlate(videoRef.current);
-          break;
-        case 'simple':
-          result = await simplePlateDetector.detectPlate(videoRef.current);
-          break;
-        default:
-          result = await customYOLODetector.detectPlate(videoRef.current);
-      }
+      const detectionPromise = (async () => {
+        switch (detectorType) {
+          case 'gemini':
+            return await geminiPlateDetector.detectPlate(videoRef.current);
+          case 'custom':
+            return await customYOLODetector.detectPlate(videoRef.current);
+          case 'yolo':
+            return await yoloPlateDetector.detectPlate(videoRef.current);
+          case 'simple':
+            return await simplePlateDetector.detectPlate(videoRef.current);
+          default:
+            return await geminiPlateDetector.detectPlate(videoRef.current);
+        }
+      })();
 
-      // Adjust confidence thresholds based on detector type (lowered for better detection)
-      const minConfidence = detectorType === 'custom' ? 0.4 :
+      // Race between detection and timeout
+      result = await Promise.race([detectionPromise, detectionTimeout]);
+
+      // Adjust confidence thresholds based on detector type
+      const minConfidence = detectorType === 'gemini' ? 0.7 :
+                           detectorType === 'custom' ? 0.4 :
                            detectorType === 'yolo' ? 0.3 : 0.35;
-      const minOcrConfidence = detectorType === 'custom' ? 0.5 :
+      const minOcrConfidence = detectorType === 'gemini' ? 0.8 :
+                              detectorType === 'custom' ? 0.5 :
                               detectorType === 'yolo' ? 0.4 : 0.45;
 
       console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
@@ -267,12 +299,12 @@ const VehicleScanner = () => {
             // Keep detection result for camera overlay only if vehicle is registered
             setDetectionResult(result);
           } else {
-            // Not found in database => mark as Invalid and clear detection result
+            // Not found in database => show detected plate but mark as not registered
             setScanResults({
-              plateNumber: 'Invalid',
-              vehicleModel: 'Vehicle Not Registered',
+              plateNumber: result.plateNumber, // Show what was actually detected
+              vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'Invalid License Plate',
+              status: 'Not Registered',
               statusType: 'violation'
             });
 
@@ -282,10 +314,10 @@ const VehicleScanner = () => {
         } catch (e) {
           console.error('Lookup failed after detection:', e);
           setScanResults({
-            plateNumber: 'Error',
-            vehicleModel: 'Lookup Failed',
-            owner: 'Error',
-            status: 'System Error',
+            plateNumber: result.plateNumber, // Show what was actually detected
+            vehicleModel: 'N/A',
+            owner: 'N/A',
+            status: 'Database Error',
             statusType: 'violation'
           });
 
@@ -315,8 +347,34 @@ const VehicleScanner = () => {
     } catch (error) {
       console.error('Error during plate detection:', error);
 
-      // Implement fallback chain: custom -> yolo -> simple
-      if (detectorType === 'custom') {
+      // Implement fallback chain: gemini -> custom -> yolo -> simple
+      if (detectorType === 'gemini') {
+        console.log('Gemini detector failed, attempting fallback to custom model...');
+        try {
+          await customYOLODetector.initialize();
+          setDetectorType('custom');
+          setUsingCustomModel(true);
+          setUsingSimpleDetector(false);
+        } catch (fallbackError) {
+          console.log('Custom model fallback failed, trying YOLO...');
+          try {
+            await yoloPlateDetector.initialize();
+            setDetectorType('yolo');
+            setUsingCustomModel(false);
+            setUsingSimpleDetector(false);
+          } catch (finalError) {
+            console.log('YOLO fallback failed, trying simple detector...');
+            try {
+              await simplePlateDetector.initialize();
+              setDetectorType('simple');
+              setUsingCustomModel(false);
+              setUsingSimpleDetector(true);
+            } catch (lastError) {
+              console.error('All detectors failed:', lastError);
+            }
+          }
+        }
+      } else if (detectorType === 'custom') {
         console.log('Custom detector failed, attempting fallback to standard YOLO...');
         try {
           await yoloPlateDetector.initialize();
@@ -354,7 +412,7 @@ const VehicleScanner = () => {
 
     try {
       if (!cameraActive) {
-        console.log('📹 Camera not active, starting camera...');
+        console.log('���� Camera not active, starting camera...');
         await startCamera();
         console.log('✅ Camera started successfully');
       }
@@ -405,11 +463,11 @@ const VehicleScanner = () => {
       try {
         const result = await lookupVehicle(plateInput.trim());
         
-        if (result.vehicle) {
+        if (result && result.vehicle) {
           const vehicleResults = {
-            plateNumber: result.vehicle.plate_number,
-            vehicleModel: `${result.vehicle.year} ${result.vehicle.make} ${result.vehicle.model}`,
-            owner: result.vehicle.owner_name,
+            plateNumber: result.vehicle.plate_number || plateInput.trim(),
+            vehicleModel: `${result.vehicle.year || ''} ${result.vehicle.make || ''} ${result.vehicle.model || ''}`.trim() || 'Unknown',
+            owner: result.vehicle.owner_name || 'Unknown',
             status: result.outstandingViolations > 0 ? `${result.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
             statusType: result.outstandingViolations > 0 ? 'violation' : 'clean'
           };
@@ -418,22 +476,22 @@ const VehicleScanner = () => {
           // Record the scan in database
           await api.recordScan(plateInput.trim(), 'Manual', result);
         } else {
-          // Vehicle not found in database - show as invalid
+          // Vehicle not found in database - show as Not Registered
           setScanResults({
-            plateNumber: 'Invalid',
-            vehicleModel: 'Vehicle Not Registered',
+            plateNumber: plateInput.trim(),
+            vehicleModel: 'N/A',
             owner: 'N/A',
-            status: 'Invalid License Plate',
+            status: 'Not Registered',
             statusType: 'violation'
           });
         }
       } catch (error) {
         console.error('Vehicle lookup failed:', error);
         setScanResults({
-          plateNumber: 'Error',
-          vehicleModel: 'Lookup Failed',
-          owner: 'Error',
-          status: 'System Error',
+          plateNumber: plateInput.trim(),
+          vehicleModel: 'N/A',
+          owner: 'N/A',
+          status: 'Database Error',
           statusType: 'violation'
         });
       } finally {
@@ -457,30 +515,75 @@ const VehicleScanner = () => {
       return;
     }
 
-    try {
-      // Reset scan results before capture
+    // Reset scan results before capture
+    setScanResults({
+      plateNumber: 'Capturing...',
+      vehicleModel: 'Scanning',
+      owner: 'Please wait',
+      status: 'Processing',
+      statusType: 'clean'
+    });
+
+    console.log('🎯 Starting single license plate capture and detection...');
+
+    // Set a definitive timeout to reset results
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Capture timeout - resetting to N/A');
       setScanResults({
-        plateNumber: 'Capturing...',
-        vehicleModel: 'Scanning',
-        owner: 'Please wait',
-        status: 'Processing',
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'No Plate Detected',
         statusType: 'clean'
       });
+    }, 6000); // 6 second timeout
 
-      console.log('🎯 Starting single license plate capture and detection...');
+    try {
+      // Perform the detection with timeout
+      console.log('🔍 Starting detection for capture...');
+      const detectionResult = await Promise.race([
+        performPlateDetection(),
+        new Promise(resolve => setTimeout(() => {
+          console.log('⏰ Detection timeout reached for capture');
+          resolve(null);
+        }, 5000)) // 5 second detection timeout
+      ]);
 
-      // Perform the detection
-      await performPlateDetection();
+      console.log('🎯 Detection result for capture:', detectionResult);
+
+      // Clear the timeout since we got a result (or detection completed)
+      clearTimeout(timeoutId);
+
+      // Always check if scan results need to be reset after a short delay
+      setTimeout(() => {
+        setScanResults(current => {
+          console.log('🔄 Checking scan results after detection:', current);
+          if (current.plateNumber === 'Capturing...' ||
+              current.plateNumber === 'Processing' ||
+              current.plateNumber === 'Scanning') {
+            console.log('📝 Detection completed but no valid plate found - resetting to N/A');
+            return {
+              plateNumber: 'N/A',
+              vehicleModel: 'N/A',
+              owner: 'N/A',
+              status: 'No Plate Detected',
+              statusType: 'clean'
+            };
+          }
+          return current;
+        });
+      }, 2000); // Increased delay to 2 seconds to allow detection to complete
 
       console.log('✅ Single capture completed');
     } catch (error) {
       console.error('❌ Capture failed:', error);
+      clearTimeout(timeoutId);
       setScanResults({
-        plateNumber: 'Error',
-        vehicleModel: 'Capture Failed',
-        owner: 'Error',
-        status: 'System Error',
-        statusType: 'violation'
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'Detection Failed',
+        statusType: 'clean'
       });
     }
   };
@@ -505,9 +608,15 @@ const VehicleScanner = () => {
         <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-blue-600" />
           Live Camera Feed with {
+            detectorType === 'gemini' ? 'Gemini Vision AI' :
             detectorType === 'custom' ? 'Custom Trained YOLO' :
             detectorType === 'yolo' ? 'Standard YOLOv8 + EasyOCR' : 'Simple'
           } Plate Detection
+          {detectorType === 'gemini' && (
+            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+              Gemini AI
+            </span>
+          )}
           {detectorType === 'custom' && (
             <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
               Custom Model
@@ -614,11 +723,13 @@ const VehicleScanner = () => {
                 {/* Scanning Indicator */}
                 {isScanning && (
                   <div className={`absolute top-3 right-3 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center shadow-lg ${
+                    detectorType === 'gemini' ? 'bg-blue-600' :
                     detectorType === 'custom' ? 'bg-green-600' :
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'custom' ? 'AI Detection Active' :
+                    🔍 {detectorType === 'gemini' ? 'Gemini AI Active' :
+                         detectorType === 'custom' ? 'AI Detection Active' :
                          detectorType === 'yolo' ? 'YOLO Detection Active' : 'Detection Active'}
                   </div>
                 )}
@@ -691,10 +802,12 @@ const VehicleScanner = () => {
               </span>
               <span className="flex items-center">
                 <div className={`w-2 h-2 rounded-full mr-2 ${
+                  detectorType === 'gemini' ? 'bg-blue-500' :
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'custom' ? 'Custom Model' :
+                {detectorType === 'gemini' ? 'Gemini AI' :
+                 detectorType === 'custom' ? 'Custom Model' :
                  detectorType === 'yolo' ? 'YOLO+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
@@ -818,10 +931,12 @@ const VehicleScanner = () => {
             Scan Results
             {detectionResult && (
               <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                detectorType === 'gemini' ? 'bg-blue-100 text-blue-700' :
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'custom' ? 'Custom Model' :
+                {detectorType === 'gemini' ? 'Gemini Vision AI' :
+                 detectorType === 'custom' ? 'Custom Model' :
                  detectorType === 'yolo' ? 'YOLOv8 + EasyOCR' : 'Simple Detection'}
               </span>
             )}

@@ -26,8 +26,9 @@ export function useCamera(): CameraHook {
 
     try {
       // Check if we're in a secure context (HTTPS or localhost)
-      if (!window.isSecureContext) {
-        throw new Error('Camera access requires HTTPS. Please access this page over HTTPS.');
+      if (!window.isSecureContext && window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1')) {
+        console.warn('Not in secure context, but allowing for development');
+        // Don't throw error, allow development environments to work
       }
 
       // Check if mediaDevices is supported
@@ -39,50 +40,60 @@ export function useCamera(): CameraHook {
       console.log('Secure context:', window.isSecureContext);
       console.log('Available devices:', await navigator.mediaDevices.enumerateDevices());
 
-      // First try with basic settings
+      // Try multiple camera configurations
       let stream: MediaStream;
-      try {
-        console.log('Trying basic camera settings...');
-        stream = await navigator.mediaDevices.getUserMedia({
+      const configs = [
+        // Basic config
+        {
           video: true,
           audio: false
-        });
-        console.log('Basic camera access successful');
-      } catch (basicErr) {
-        console.warn('Basic settings failed, trying with specific constraints:', basicErr);
+        },
+        // Mobile-friendly config
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            facingMode: 'environment' // Use back camera on mobile
+          },
+          audio: false
+        },
+        // Fallback config
+        {
+          video: {
+            width: { max: 640 },
+            height: { max: 480 }
+          },
+          audio: false
+        }
+      ];
 
-        // Try with more specific settings
+      let lastError;
+      for (let i = 0; i < configs.length; i++) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { min: 640, ideal: 1280, max: 1920 },
-              height: { min: 480, ideal: 720, max: 1080 },
-              frameRate: { min: 15, ideal: 30, max: 60 }
-            },
-            audio: false
-          });
-          console.log('Specific settings successful');
-        } catch (specificErr) {
-          console.error('Both basic and specific settings failed:', specificErr);
-          throw basicErr; // Throw the original error
+          console.log(`Trying camera config ${i + 1}/${configs.length}:`, configs[i]);
+          stream = await navigator.mediaDevices.getUserMedia(configs[i]);
+          console.log(`Camera config ${i + 1} successful`);
+          break;
+        } catch (configErr) {
+          console.warn(`Camera config ${i + 1} failed:`, configErr);
+          lastError = configErr;
+          if (i === configs.length - 1) {
+            throw lastError;
+          }
         }
       }
 
       console.log('Camera stream obtained:', stream);
       console.log('Stream tracks:', stream.getTracks());
 
-      // Wait for video element to be available with retry logic
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (!videoRef.current && attempts < maxAttempts) {
-        console.log(`Waiting for video element... attempt ${attempts + 1}/${maxAttempts}`);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
+      // Ensure video element is available
       if (!videoRef.current) {
-        throw new Error(`Video element not available in DOM after ${maxAttempts} attempts. Please refresh the page and try again.`);
+        // Try to wait a bit for React to render the element
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (!videoRef.current) {
+          throw new Error('Video element not found. Please refresh the page and try again.');
+        }
       }
 
       console.log('Video element found:', videoRef.current);
@@ -90,53 +101,64 @@ export function useCamera(): CameraHook {
       videoRef.current.srcObject = stream;
       streamRef.current = stream;
 
-      // Wait for video to be ready
-      await new Promise<void>((resolve, reject) => {
-        if (!videoRef.current) {
-          reject(new Error('Video element became unavailable'));
-          return;
-        }
+      // Set up video element and wait for it to be ready
+      const video = videoRef.current;
+      video.srcObject = stream;
+      streamRef.current = stream;
 
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Video loading timeout after 15 seconds. Try refreshing the page.'));
-        }, 15000);
+      // Wait for video to load and start playing
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error('Video loading timeout. Camera may be in use by another application.'));
+          }, 10000); // Reduced timeout to 10 seconds
 
-        const handleLoadedMetadata = () => {
-          clearTimeout(timeoutId);
-          console.log('Video metadata loaded:', {
-            videoWidth: videoRef.current?.videoWidth,
-            videoHeight: videoRef.current?.videoHeight,
-            readyState: videoRef.current?.readyState
-          });
+          const cleanup = () => {
+            clearTimeout(timeoutId);
+            video.removeEventListener('loadedmetadata', handleLoad);
+            video.removeEventListener('error', handleError);
+          };
 
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log('Video playback started successfully');
-                setIsActive(true);
-                resolve();
-              })
-              .catch((playErr) => {
-                console.error('Video play failed:', playErr);
-                reject(new Error(`Video playback failed: ${playErr.message}`));
-              });
+          const handleLoad = async () => {
+            cleanup();
+            console.log('Video metadata loaded:', {
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              readyState: video.readyState
+            });
+
+            try {
+              await video.play();
+              console.log('Video playback started successfully');
+              setIsActive(true);
+              resolve();
+            } catch (playErr) {
+              console.error('Video play failed:', playErr);
+              reject(new Error(`Video playback failed. This may be due to browser autoplay policies.`));
+            }
+          };
+
+          const handleError = (videoErr: any) => {
+            cleanup();
+            console.error('Video element error:', videoErr);
+            reject(new Error('Video stream error. Please check camera connection.'));
+          };
+
+          video.addEventListener('loadedmetadata', handleLoad, { once: true });
+          video.addEventListener('error', handleError, { once: true });
+
+          // Try immediate load if metadata already available
+          if (video.readyState >= 1) {
+            setTimeout(handleLoad, 0);
           }
-        };
-
-        const handleError = (videoErr: any) => {
-          clearTimeout(timeoutId);
-          console.error('Video element error:', videoErr);
-          reject(new Error('Failed to load video stream into video element'));
-        };
-
-        videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-        videoRef.current.addEventListener('error', handleError, { once: true });
-
-        // Also try to load immediately if metadata is already available
-        if (videoRef.current.readyState >= 1) {
-          handleLoadedMetadata();
+        });
+      } catch (videoError) {
+        // Clean up stream if video setup failed
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
         }
-      });
+        throw videoError;
+      }
     } catch (err) {
       console.error('Camera initialization failed:', err);
       let errorMessage = 'Failed to access camera';
