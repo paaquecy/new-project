@@ -666,10 +666,10 @@ const VehicleScanner = () => {
           } else {
             // Vehicle NOT found in database - show detected plate but N/A for other info
             setScanResults({
-              plateNumber: detectedPlateNumber, // Keep showing detected plate
+              plateNumber: detectedPlateNumber,
               vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'Not Registered in Database',
+              status: 'Not Registered',
               statusType: 'violation'
             });
             setDetectionResult(null); // Don't show detection overlay if not registered
@@ -678,22 +678,22 @@ const VehicleScanner = () => {
           console.error('Lookup failed after detection:', lookupError);
           // Database error - show detected plate but indicate error
           setScanResults({
-            plateNumber: detectedPlateNumber, // Keep showing detected plate
+            plateNumber: detectedPlateNumber,
             vehicleModel: 'N/A',
             owner: 'N/A',
-            status: 'Database Error - Unable to Verify',
+            status: 'Database Error',
             statusType: 'violation'
           });
           setDetectionResult(null);
         }
       } else {
-        console.log('❌ No plate detected in captured image');
+        console.log('❌ No plate detected');
         setPlateDetectedFromImage(false);
         setScanResults({
           plateNumber: 'N/A',
           vehicleModel: 'N/A',
           owner: 'N/A',
-          status: 'No Plate Detected in Image',
+          status: 'No Plate Found',
           statusType: 'clean'
         });
         setDetectionResult(null);
