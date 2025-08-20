@@ -492,19 +492,28 @@ const VehicleScanner = () => {
 
     try {
       // Perform the detection with timeout
+      console.log('🔍 Starting detection for capture...');
       const detectionResult = await Promise.race([
         performPlateDetection(),
-        new Promise(resolve => setTimeout(() => resolve(null), 5000)) // 5 second detection timeout
+        new Promise(resolve => setTimeout(() => {
+          console.log('⏰ Detection timeout reached for capture');
+          resolve(null);
+        }, 5000)) // 5 second detection timeout
       ]);
+
+      console.log('🎯 Detection result for capture:', detectionResult);
 
       // Clear the timeout since we got a result (or detection completed)
       clearTimeout(timeoutId);
 
-      // Check if scan results are still showing "Capturing..." after detection
+      // Always check if scan results need to be reset after a short delay
       setTimeout(() => {
         setScanResults(current => {
-          if (current.plateNumber === 'Capturing...' || current.plateNumber === 'Processing') {
-            console.log('🔄 Detection completed but no valid plate found - resetting to N/A');
+          console.log('🔄 Checking scan results after detection:', current);
+          if (current.plateNumber === 'Capturing...' ||
+              current.plateNumber === 'Processing' ||
+              current.plateNumber === 'Scanning') {
+            console.log('📝 Detection completed but no valid plate found - resetting to N/A');
             return {
               plateNumber: 'N/A',
               vehicleModel: 'N/A',
@@ -515,7 +524,7 @@ const VehicleScanner = () => {
           }
           return current;
         });
-      }, 1000);
+      }, 2000); // Increased delay to 2 seconds to allow detection to complete
 
       console.log('✅ Single capture completed');
     } catch (error) {
