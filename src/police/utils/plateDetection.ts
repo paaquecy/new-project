@@ -166,27 +166,32 @@ export class PlateDetector {
       const gray = new cv.Mat();
       cv.cvtColor(roi, gray, cv.COLOR_RGBA2GRAY);
 
-      // Apply threshold to get binary image
+      // Apply adaptive threshold for better results
       const binary = new cv.Mat();
-      cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+      cv.adaptiveThreshold(gray, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
 
       // Morphological operations to clean up the image
-      const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+      const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(2, 2));
       const cleaned = new cv.Mat();
       cv.morphologyEx(binary, cleaned, cv.MORPH_CLOSE, kernel);
 
+      // Remove noise with opening operation
+      const denoised = new cv.Mat();
+      cv.morphologyEx(cleaned, denoised, cv.MORPH_OPEN, kernel);
+
       // Convert to canvas for text extraction
       const canvas = document.createElement('canvas');
-      cv.imshow(canvas, cleaned);
+      cv.imshow(canvas, denoised);
 
-      // Simple character recognition (in production, use Tesseract.js or similar)
-      const plateText = await this.performOCR(canvas);
+      // Perform OCR on the processed image
+      const plateText = await this.performRealOCR(canvas);
 
       // Clean up
       gray.delete();
       binary.delete();
       kernel.delete();
       cleaned.delete();
+      denoised.delete();
 
       return plateText;
     } catch (error) {
@@ -195,25 +200,161 @@ export class PlateDetector {
     }
   }
 
-  private async performOCR(canvas: HTMLCanvasElement): Promise<string | null> {
-    // Simplified OCR - in production, integrate with Tesseract.js
-    // For now, we'll simulate plate detection with pattern matching
-    
-    // Get image data
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+  private async performRealOCR(canvas: HTMLCanvasElement): Promise<string | null> {
+    try {
+      // Get image data for analysis
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Simulate OCR result based on image characteristics
-    // In a real implementation, you would use a proper OCR library
-    const simulatedPlates = [
-      'GH-1234-20', 'AS-5678-21', 'BA-9876-19', 'WR-3456-22', 'UE-7890-23',
-      'CR-2468-20', 'TV-1357-21', 'NR-8642-19', 'VR-9753-22', 'ER-1593-20'
-    ];
-    
-    // Return a random plate for demonstration
-    return simulatedPlates[Math.floor(Math.random() * simulatedPlates.length)];
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Analyze if the image contains text-like patterns
+      const hasTextPatterns = this.analyzeTextPatterns(imageData);
+
+      if (!hasTextPatterns) {
+        console.log('No text patterns detected in ROI');
+        return null;
+      }
+
+      // Try to extract characters using basic pattern recognition
+      const extractedText = await this.extractCharacters(imageData);
+
+      if (extractedText && this.isValidPlateFormat(extractedText)) {
+        console.log('Valid plate text extracted:', extractedText);
+        return extractedText;
+      }
+
+      console.log('OCR could not extract valid plate text');
+      return null;
+
+    } catch (error) {
+      console.error('OCR processing failed:', error);
+      return null;
+    }
+  }
+
+  private analyzeTextPatterns(imageData: ImageData): boolean {
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+
+    let horizontalTransitions = 0;
+    let verticalTransitions = 0;
+    let totalPixels = 0;
+
+    // Count transitions that indicate text presence
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width - 1; x++) {
+        const idx = (y * width + x) * 4;
+        const nextIdx = (y * width + x + 1) * 4;
+
+        const current = data[idx];
+        const next = data[nextIdx];
+
+        if (Math.abs(current - next) > 100) {
+          horizontalTransitions++;
+        }
+        totalPixels++;
+      }
+    }
+
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height - 1; y++) {
+        const idx = (y * width + x) * 4;
+        const nextIdx = ((y + 1) * width + x) * 4;
+
+        const current = data[idx];
+        const next = data[nextIdx];
+
+        if (Math.abs(current - next) > 100) {
+          verticalTransitions++;
+        }
+      }
+    }
+
+    const transitionRatio = (horizontalTransitions + verticalTransitions) / totalPixels;
+
+    // Text regions should have a reasonable number of transitions
+    return transitionRatio > 0.05 && transitionRatio < 0.8;
+  }
+
+  private async extractCharacters(imageData: ImageData): Promise<string | null> {
+    // This is a simplified character recognition
+    // In production, you would use Tesseract.js or a similar OCR library
+
+    const data = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+
+    // Find connected components that could be characters
+    const components = this.findConnectedComponents(data, width, height);
+
+    if (components.length < 4 || components.length > 12) {
+      // License plates typically have 6-10 characters
+      return null;
+    }
+
+    // For now, return null to indicate that real OCR is needed
+    // This prevents the system from generating fake plate numbers
+    console.log(`Found ${components.length} potential character regions, but need real OCR implementation`);
+    return null;
+  }
+
+  private findConnectedComponents(data: Uint8ClampedArray, width: number, height: number): Array<{x: number, y: number, width: number, height: number}> {
+    const visited = new Uint8ClampedArray(width * height);
+    const components: Array<{x: number, y: number, width: number, height: number}> = [];
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = y * width + x;
+        const pixelIdx = idx * 4;
+
+        if (data[pixelIdx] === 0 && visited[idx] === 0) { // Black pixel (text)
+          const component = this.floodFill(data, visited, x, y, width, height);
+
+          if (component.pixels > 10 && component.pixels < 500) { // Reasonable character size
+            components.push({
+              x: component.minX,
+              y: component.minY,
+              width: component.maxX - component.minX,
+              height: component.maxY - component.minY
+            });
+          }
+        }
+      }
+    }
+
+    return components;
+  }
+
+  private floodFill(data: Uint8ClampedArray, visited: Uint8ClampedArray, startX: number, startY: number, width: number, height: number): {minX: number, maxX: number, minY: number, maxY: number, pixels: number} {
+    const stack = [{x: startX, y: startY}];
+    let minX = startX, maxX = startX, minY = startY, maxY = startY;
+    let pixels = 0;
+
+    while (stack.length > 0) {
+      const {x, y} = stack.pop()!;
+
+      if (x < 0 || x >= width || y < 0 || y >= height) continue;
+
+      const idx = y * width + x;
+      const pixelIdx = idx * 4;
+
+      if (visited[idx] === 1 || data[pixelIdx] !== 0) continue;
+
+      visited[idx] = 1;
+      pixels++;
+
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+
+      // Add 4-connected neighbors
+      stack.push({x: x + 1, y}, {x: x - 1, y}, {x, y: y + 1}, {x, y: y - 1});
+    }
+
+    return {minX, maxX, minY, maxY, pixels};
   }
 
   private isValidPlateFormat(text: string): boolean {
@@ -251,25 +392,12 @@ export class PlateDetector {
   }
 
   private fallbackDetection(): PlateDetectionResult | null {
-    // Simulate plate detection when OpenCV is not available
-    const simulatedPlates = [
-      'GH-1234-20', 'AS-5678-21', 'BA-9876-19', 'WR-3456-22', 'UE-7890-23',
-      'CR-2468-20', 'TV-1357-21', 'NR-8642-19', 'VR-9753-22', 'ER-1593-20'
-    ];
+    // When OpenCV is not available, we cannot perform real plate detection
+    // Instead of generating fake data, return null to indicate detection failed
+    console.log('OpenCV not available and no fallback detection possible');
+    console.log('Real plate detection requires proper computer vision libraries');
 
-    // Return a random simulated detection
-    const plateNumber = simulatedPlates[Math.floor(Math.random() * simulatedPlates.length)];
-
-    return {
-      plateNumber,
-      confidence: 0.8 + Math.random() * 0.2, // Random confidence between 0.8-1.0
-      boundingBox: {
-        x: Math.floor(Math.random() * 100) + 50,
-        y: Math.floor(Math.random() * 100) + 50,
-        width: Math.floor(Math.random() * 100) + 150,
-        height: Math.floor(Math.random() * 50) + 50
-      }
-    };
+    return null;
   }
 
   cleanup(): void {
