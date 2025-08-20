@@ -637,50 +637,69 @@ const VehicleScanner = () => {
       console.log('🎯 Detection result for captured image:', result);
 
       // Process the detection result
-      if (result && result.plateNumber && result.confidence > 0.3) {
+      if (result && result.plateNumber) {
         console.log('✅ Plate detected from captured image:', result);
+        console.log('📊 Detection confidence:', result.confidence);
+
+        // Always show the detected plate number, regardless of confidence
+        const detectedPlateNumber = result.plateNumber;
+
+        // Set initial results showing the detected plate number
+        setScanResults({
+          plateNumber: detectedPlateNumber,
+          vehicleModel: 'Looking up...',
+          owner: 'Please wait...',
+          status: 'Checking Database',
+          statusType: 'clean'
+        });
+
+        // Brief delay to show the plate number was detected
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Lookup detected plate in database
         try {
-          const lookup = await lookupVehicle(result.plateNumber);
+          const lookup = await lookupVehicle(detectedPlateNumber);
           if (lookup && lookup.vehicle) {
+            // Vehicle found in database - show all details
             const vehicle = lookup.vehicle;
             setScanResults({
-              plateNumber: result.plateNumber,
+              plateNumber: detectedPlateNumber, // Keep showing detected plate
               vehicleModel: `${vehicle.year || vehicle.year_of_manufacture || ''} ${vehicle.make || vehicle.manufacturer || ''} ${vehicle.model || ''}`.trim() || 'Unknown',
               owner: vehicle.owner_name || 'Unknown',
               status: lookup.outstandingViolations > 0 ? `${lookup.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
               statusType: lookup.outstandingViolations > 0 ? 'violation' : 'clean'
             });
-            setDetectionResult(result);
+            setDetectionResult(result); // Show detection overlay on camera
           } else {
+            // Vehicle NOT found in database - show detected plate but N/A for other info
             setScanResults({
-              plateNumber: result.plateNumber,
+              plateNumber: detectedPlateNumber, // Keep showing detected plate
               vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'Not Registered',
+              status: 'Not Registered in Database',
               statusType: 'violation'
             });
-            setDetectionResult(null);
+            setDetectionResult(null); // Don't show detection overlay if not registered
           }
         } catch (lookupError) {
           console.error('Lookup failed after detection:', lookupError);
+          // Database error - show detected plate but indicate error
           setScanResults({
-            plateNumber: result.plateNumber,
+            plateNumber: detectedPlateNumber, // Keep showing detected plate
             vehicleModel: 'N/A',
             owner: 'N/A',
-            status: 'Database Error',
+            status: 'Database Error - Unable to Verify',
             statusType: 'violation'
           });
           setDetectionResult(null);
         }
       } else {
-        console.log('❌ No valid plate detected in captured image');
+        console.log('❌ No plate detected in captured image');
         setScanResults({
           plateNumber: 'N/A',
           vehicleModel: 'N/A',
           owner: 'N/A',
-          status: 'No Plate Detected',
+          status: 'No Plate Detected in Image',
           statusType: 'clean'
         });
         setDetectionResult(null);
