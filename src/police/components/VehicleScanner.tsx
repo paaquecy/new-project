@@ -802,10 +802,12 @@ const VehicleScanner = () => {
               </span>
               <span className="flex items-center">
                 <div className={`w-2 h-2 rounded-full mr-2 ${
+                  detectorType === 'gemini' ? 'bg-blue-500' :
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'custom' ? 'Custom Model' :
+                {detectorType === 'gemini' ? 'Gemini AI' :
+                 detectorType === 'custom' ? 'Custom Model' :
                  detectorType === 'yolo' ? 'YOLO+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
