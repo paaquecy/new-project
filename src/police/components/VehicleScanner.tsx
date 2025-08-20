@@ -1048,6 +1048,54 @@ const VehicleScanner = () => {
           </div>
         </div>
       </div>
+
+      {/* Captured Image Display */}
+      {capturedImage && (
+        <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
+          <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-green-600" />
+            Captured Image
+            <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+              ✓ Saved
+            </span>
+          </h3>
+
+          <div className="space-y-4">
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={capturedImage}
+                alt="Captured camera frame"
+                className="w-full h-48 sm:h-64 object-cover"
+              />
+              <div className="absolute top-2 right-2 bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">
+                Captured: {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  // Create download link for the image
+                  const link = document.createElement('a');
+                  link.href = capturedImage;
+                  link.download = `license-plate-capture-${Date.now()}.jpg`;
+                  link.click();
+                }}
+                className="flex-1 py-2 lg:py-3 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200 text-sm lg:text-base"
+              >
+                Download Image
+              </button>
+
+              <button
+                onClick={() => setCapturedImage(null)}
+                className="px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors duration-200 text-sm lg:text-base"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
