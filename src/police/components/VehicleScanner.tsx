@@ -570,10 +570,20 @@ const VehicleScanner = () => {
       let result = null;
 
       // Create an image element from the captured image data URL
+      console.log('🖼️ Creating image from captured data URL...');
+      console.log('📊 Captured image data length:', capturedImage?.length || 0);
+      console.log('📊 Captured image type:', capturedImage?.substring(0, 50));
+
       const img = new Image();
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+        img.onload = () => {
+          console.log('✅ Image loaded successfully:', { width: img.width, height: img.height });
+          resolve(img);
+        };
+        img.onerror = (errorEvent) => {
+          console.error('❌ Image loading failed:', errorEvent);
+          reject(new Error(`Failed to load captured image: ${errorEvent.type}`));
+        };
         img.src = capturedImage;
       });
 
