@@ -41,6 +41,7 @@ const VehicleScanner = () => {
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [captureFlash, setCaptureFlash] = useState(false);
+  const [plateDetectedFromImage, setPlateDetectedFromImage] = useState(false);
   const autoStartRef = useRef(false);
 
   const {
