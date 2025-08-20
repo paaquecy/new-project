@@ -563,55 +563,89 @@ const VehicleScanner = () => {
 
     console.log('🎯 Starting license plate detection on captured image...');
 
-    // Set a definitive timeout to reset results
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Capture timeout - resetting to N/A');
-      setScanResults({
-        plateNumber: 'N/A',
-        vehicleModel: 'N/A',
-        owner: 'N/A',
-        status: 'No Plate Detected',
-        statusType: 'clean'
-      });
-    }, 6000); // 6 second timeout
-
     try {
-      // Perform the detection with timeout
-      console.log('🔍 Starting detection for capture...');
-      const detectionResult = await Promise.race([
-        performPlateDetection(),
-        new Promise(resolve => setTimeout(() => {
-          console.log('⏰ Detection timeout reached for capture');
-          resolve(null);
-        }, 5000)) // 5 second detection timeout
-      ]);
+      // Analyze the captured image directly
+      console.log('🔍 Analyzing captured image for plate detection...');
 
-      console.log('🎯 Detection result for capture:', detectionResult);
+      let result = null;
 
-      // Clear the timeout since we got a result (or detection completed)
-      clearTimeout(timeoutId);
+      // Try detection on the captured frame using the appropriate detector
+      try {
+        switch (detectorType) {
+          case 'gemini':
+            // For Gemini, we need to convert the captured image to the right format
+            result = await geminiPlateDetector.detectPlateFromImage(capturedImage);
+            break;
+          case 'custom':
+            result = await customYOLODetector.detectPlate(videoRef.current);
+            break;
+          case 'yolo':
+            result = await yoloPlateDetector.detectPlate(videoRef.current);
+            break;
+          case 'simple':
+            result = await simplePlateDetector.detectPlate(videoRef.current);
+            break;
+          default:
+            result = await geminiPlateDetector.detectPlateFromImage(capturedImage);
+        }
+      } catch (detectionError) {
+        console.error('Detection failed on captured image:', detectionError);
+        result = null;
+      }
 
-      // Always check if scan results need to be reset after a short delay
-      setTimeout(() => {
-        setScanResults(current => {
-          console.log('🔄 Checking scan results after detection:', current);
-          if (current.plateNumber === 'Capturing...' ||
-              current.plateNumber === 'Processing' ||
-              current.plateNumber === 'Scanning') {
-            console.log('📝 Detection completed but no valid plate found - resetting to N/A');
-            return {
-              plateNumber: 'N/A',
+      console.log('🎯 Detection result for captured image:', result);
+
+      // Process the detection result
+      if (result && result.plateNumber && result.confidence > 0.3) {
+        console.log('✅ Plate detected from captured image:', result);
+
+        // Lookup detected plate in database
+        try {
+          const lookup = await lookupVehicle(result.plateNumber);
+          if (lookup && lookup.vehicle) {
+            const vehicle = lookup.vehicle;
+            setScanResults({
+              plateNumber: result.plateNumber,
+              vehicleModel: `${vehicle.year || vehicle.year_of_manufacture || ''} ${vehicle.make || vehicle.manufacturer || ''} ${vehicle.model || ''}`.trim() || 'Unknown',
+              owner: vehicle.owner_name || 'Unknown',
+              status: lookup.outstandingViolations > 0 ? `${lookup.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
+              statusType: lookup.outstandingViolations > 0 ? 'violation' : 'clean'
+            });
+            setDetectionResult(result);
+          } else {
+            setScanResults({
+              plateNumber: result.plateNumber,
               vehicleModel: 'N/A',
               owner: 'N/A',
-              status: 'No Plate Detected',
-              statusType: 'clean'
-            };
+              status: 'Not Registered',
+              statusType: 'violation'
+            });
+            setDetectionResult(null);
           }
-          return current;
+        } catch (lookupError) {
+          console.error('Lookup failed after detection:', lookupError);
+          setScanResults({
+            plateNumber: result.plateNumber,
+            vehicleModel: 'N/A',
+            owner: 'N/A',
+            status: 'Database Error',
+            statusType: 'violation'
+          });
+          setDetectionResult(null);
+        }
+      } else {
+        console.log('❌ No valid plate detected in captured image');
+        setScanResults({
+          plateNumber: 'N/A',
+          vehicleModel: 'N/A',
+          owner: 'N/A',
+          status: 'No Plate Detected',
+          statusType: 'clean'
         });
-      }, 2000); // Increased delay to 2 seconds to allow detection to complete
+        setDetectionResult(null);
+      }
 
-      console.log('✅ Single capture completed');
+      console.log('✅ Captured image analysis completed');
     } catch (error) {
       console.error('❌ Capture failed:', error);
       clearTimeout(timeoutId);
