@@ -339,7 +339,7 @@ const VehicleScanner = () => {
         }, 3000);
       } else {
         if (result) {
-          console.log('❌ Detection failed confidence check:', {
+          console.log('��� Detection failed confidence check:', {
             detected: result.plateNumber,
             confidence: `${Math.round(result.confidence * 100)}% (need >${Math.round(minConfidence * 100)}%)`,
             ocrConfidence: `${Math.round((result.ocrConfidence || 0) * 100)}% (need >${Math.round(minOcrConfidence * 100)}%)`,
@@ -506,7 +506,7 @@ const VehicleScanner = () => {
   };
 
   const handleCapturePlate = async () => {
-    console.log('📸 Capture button clicked - performing single plate detection');
+    console.log('📸 Capture button clicked - capturing image then performing plate detection');
 
     if (!cameraActive) {
       console.warn('❌ Camera not active, cannot capture');
@@ -520,16 +520,42 @@ const VehicleScanner = () => {
       return;
     }
 
-    // Reset scan results before capture
+    // First, capture the current camera frame
+    console.log('📷 Capturing current camera frame...');
+    const frame = captureFrame();
+    if (frame) {
+      // Convert canvas to data URL for storage/display
+      const imageDataUrl = frame.toDataURL('image/jpeg', 0.8);
+      setCapturedImage(imageDataUrl);
+      console.log('✅ Camera frame captured successfully');
+
+      // Show brief notification that image was captured
+      setScanResults({
+        plateNumber: 'Image Captured',
+        vehicleModel: 'Starting Analysis',
+        owner: 'Please wait',
+        status: 'Processing',
+        statusType: 'clean'
+      });
+
+      // Brief delay to show the capture feedback
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } else {
+      console.warn('❌ Failed to capture camera frame');
+      alert('Failed to capture camera image. Please try again.');
+      return;
+    }
+
+    // Reset scan results before detection
     setScanResults({
-      plateNumber: 'Capturing...',
+      plateNumber: 'Analyzing...',
       vehicleModel: 'Scanning',
       owner: 'Please wait',
       status: 'Processing',
       statusType: 'clean'
     });
 
-    console.log('🎯 Starting single license plate capture and detection...');
+    console.log('🎯 Starting license plate detection on captured image...');
 
     // Set a definitive timeout to reset results
     const timeoutId = setTimeout(() => {
