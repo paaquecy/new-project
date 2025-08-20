@@ -39,6 +39,7 @@ const VehicleScanner = () => {
   const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const autoStartRef = useRef(false);
 
   const {
