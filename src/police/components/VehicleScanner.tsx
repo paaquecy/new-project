@@ -203,25 +203,35 @@ const VehicleScanner = () => {
       return;
     }
 
+    // Add timeout wrapper to prevent infinite processing
+    const detectionTimeout = new Promise<null>((resolve) => {
+      setTimeout(() => {
+        console.log('⏰ Detection attempt timed out after 8 seconds');
+        resolve(null);
+      }, 8000);
+    });
+
     try {
       console.log('🎯 Running plate detection attempt #', detectionAttempts + 1, 'with',
         detectorType === 'custom' ? 'custom trained model' :
         detectorType === 'yolo' ? 'standard YOLOv8 + EasyOCR' : 'simple detector');
 
       let result;
-      switch (detectorType) {
-        case 'custom':
-          result = await customYOLODetector.detectPlate(videoRef.current);
-          break;
-        case 'yolo':
-          result = await yoloPlateDetector.detectPlate(videoRef.current);
-          break;
-        case 'simple':
-          result = await simplePlateDetector.detectPlate(videoRef.current);
-          break;
-        default:
-          result = await customYOLODetector.detectPlate(videoRef.current);
-      }
+      const detectionPromise = (async () => {
+        switch (detectorType) {
+          case 'custom':
+            return await customYOLODetector.detectPlate(videoRef.current);
+          case 'yolo':
+            return await yoloPlateDetector.detectPlate(videoRef.current);
+          case 'simple':
+            return await simplePlateDetector.detectPlate(videoRef.current);
+          default:
+            return await customYOLODetector.detectPlate(videoRef.current);
+        }
+      })();
+
+      // Race between detection and timeout
+      result = await Promise.race([detectionPromise, detectionTimeout]);
 
       // Adjust confidence thresholds based on detector type (lowered for better detection)
       const minConfidence = detectorType === 'custom' ? 0.4 :
