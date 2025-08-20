@@ -523,6 +523,11 @@ const VehicleScanner = () => {
 
     // First, capture the current camera frame
     console.log('📷 Capturing current camera frame...');
+
+    // Trigger capture flash effect
+    setCaptureFlash(true);
+    setTimeout(() => setCaptureFlash(false), 200); // Flash for 200ms
+
     const frame = captureFrame();
     if (frame) {
       // Convert canvas to data URL for storage/display
