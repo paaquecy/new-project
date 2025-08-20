@@ -415,7 +415,7 @@ const VehicleScanner = () => {
 
   const handleStartScan = async () => {
     console.log('🎬 handleStartScan called');
-    console.log('📊 Current states:', { cameraActive, cameraLoading, cameraError, permissionStatus, isScanning, scanInterval: !!scanInterval });
+    console.log('�� Current states:', { cameraActive, cameraLoading, cameraError, permissionStatus, isScanning, scanInterval: !!scanInterval });
 
     try {
       if (!cameraActive) {
@@ -466,7 +466,8 @@ const VehicleScanner = () => {
   const handleManualLookup = async () => {
     if (plateInput.trim()) {
       setIsScanning(true);
-      
+      setPlateDetectedFromImage(false); // This is manual entry, not detected from image
+
       try {
         const result = await lookupVehicle(plateInput.trim());
         
