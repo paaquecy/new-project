@@ -554,10 +554,10 @@ const VehicleScanner = () => {
 
     // Reset scan results before detection
     setScanResults({
-      plateNumber: 'Analyzing...',
-      vehicleModel: 'Scanning',
+      plateNumber: 'Analyzing Captured Image...',
+      vehicleModel: 'Processing',
       owner: 'Please wait',
-      status: 'Processing',
+      status: 'AI Analysis in Progress',
       statusType: 'clean'
     });
 
