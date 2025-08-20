@@ -364,7 +364,7 @@ const VehicleScanner = () => {
 
     try {
       if (!cameraActive) {
-        console.log('📹 Camera not active, starting camera...');
+        console.log('���� Camera not active, starting camera...');
         await startCamera();
         console.log('✅ Camera started successfully');
       }
@@ -467,30 +467,66 @@ const VehicleScanner = () => {
       return;
     }
 
-    try {
-      // Reset scan results before capture
+    // Reset scan results before capture
+    setScanResults({
+      plateNumber: 'Capturing...',
+      vehicleModel: 'Scanning',
+      owner: 'Please wait',
+      status: 'Processing',
+      statusType: 'clean'
+    });
+
+    console.log('🎯 Starting single license plate capture and detection...');
+
+    // Set a definitive timeout to reset results
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Capture timeout - resetting to N/A');
       setScanResults({
-        plateNumber: 'Capturing...',
-        vehicleModel: 'Scanning',
-        owner: 'Please wait',
-        status: 'Processing',
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'No Plate Detected',
         statusType: 'clean'
       });
+    }, 6000); // 6 second timeout
 
-      console.log('🎯 Starting single license plate capture and detection...');
+    try {
+      // Perform the detection with timeout
+      const detectionResult = await Promise.race([
+        performPlateDetection(),
+        new Promise(resolve => setTimeout(() => resolve(null), 5000)) // 5 second detection timeout
+      ]);
 
-      // Perform the detection
-      await performPlateDetection();
+      // Clear the timeout since we got a result (or detection completed)
+      clearTimeout(timeoutId);
+
+      // Check if scan results are still showing "Capturing..." after detection
+      setTimeout(() => {
+        setScanResults(current => {
+          if (current.plateNumber === 'Capturing...' || current.plateNumber === 'Processing') {
+            console.log('🔄 Detection completed but no valid plate found - resetting to N/A');
+            return {
+              plateNumber: 'N/A',
+              vehicleModel: 'N/A',
+              owner: 'N/A',
+              status: 'No Plate Detected',
+              statusType: 'clean'
+            };
+          }
+          return current;
+        });
+      }, 1000);
 
       console.log('✅ Single capture completed');
     } catch (error) {
       console.error('❌ Capture failed:', error);
+      clearTimeout(timeoutId);
       setScanResults({
-        plateNumber: 'Error',
-        vehicleModel: 'Capture Failed',
-        owner: 'Error',
-        status: 'System Error',
-        statusType: 'violation'
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'Detection Failed',
+        statusType: 'clean'
       });
     }
   };
