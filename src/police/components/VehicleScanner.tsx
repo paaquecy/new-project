@@ -787,6 +787,11 @@ const VehicleScanner = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Capture Flash Effect */}
+                {captureFlash && (
+                  <div className="absolute inset-0 bg-white opacity-80 animate-ping pointer-events-none rounded-lg"></div>
+                )}
               </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
