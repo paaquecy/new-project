@@ -563,6 +563,32 @@ const VehicleScanner = () => {
 
     console.log('🎯 Starting license plate detection on captured image...');
 
+    // Validate captured image exists and is valid
+    if (!capturedImage) {
+      console.error('❌ No captured image available for analysis');
+      setScanResults({
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'No Image Captured',
+        statusType: 'clean'
+      });
+      return;
+    }
+
+    // Validate the data URL format
+    if (!capturedImage.startsWith('data:image/')) {
+      console.error('❌ Invalid image data format:', capturedImage.substring(0, 50));
+      setScanResults({
+        plateNumber: 'N/A',
+        vehicleModel: 'N/A',
+        owner: 'N/A',
+        status: 'Invalid Image Format',
+        statusType: 'clean'
+      });
+      return;
+    }
+
     try {
       // Analyze the captured image directly
       console.log('🔍 Analyzing captured image for plate detection...');
