@@ -347,8 +347,34 @@ const VehicleScanner = () => {
     } catch (error) {
       console.error('Error during plate detection:', error);
 
-      // Implement fallback chain: custom -> yolo -> simple
-      if (detectorType === 'custom') {
+      // Implement fallback chain: gemini -> custom -> yolo -> simple
+      if (detectorType === 'gemini') {
+        console.log('Gemini detector failed, attempting fallback to custom model...');
+        try {
+          await customYOLODetector.initialize();
+          setDetectorType('custom');
+          setUsingCustomModel(true);
+          setUsingSimpleDetector(false);
+        } catch (fallbackError) {
+          console.log('Custom model fallback failed, trying YOLO...');
+          try {
+            await yoloPlateDetector.initialize();
+            setDetectorType('yolo');
+            setUsingCustomModel(false);
+            setUsingSimpleDetector(false);
+          } catch (finalError) {
+            console.log('YOLO fallback failed, trying simple detector...');
+            try {
+              await simplePlateDetector.initialize();
+              setDetectorType('simple');
+              setUsingCustomModel(false);
+              setUsingSimpleDetector(true);
+            } catch (lastError) {
+              console.error('All detectors failed:', lastError);
+            }
+          }
+        }
+      } else if (detectorType === 'custom') {
         console.log('Custom detector failed, attempting fallback to standard YOLO...');
         try {
           await yoloPlateDetector.initialize();
