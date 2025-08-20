@@ -104,10 +104,23 @@ const VehicleScanner = () => {
     checkPermissions();
   }, []);
 
-  // Initialize detection system with custom model priority
+  // Initialize detection system with Gemini priority
   useEffect(() => {
     const initializeDetector = async () => {
-      // Try custom model first (your trained model)
+      // Try Gemini Vision API first
+      try {
+        console.log('Starting Gemini Vision API initialization...');
+        await geminiPlateDetector.initialize();
+        console.log('Gemini Vision API initialized successfully');
+        setDetectorType('gemini');
+        setUsingCustomModel(false);
+        setUsingSimpleDetector(false);
+        return;
+      } catch (error) {
+        console.warn('Failed to initialize Gemini detector, trying custom model:', error);
+      }
+
+      // Fallback to custom model
       try {
         console.log('Starting custom YOLO detector initialization...');
         await customYOLODetector.initialize();
@@ -150,6 +163,9 @@ const VehicleScanner = () => {
     return () => {
       // Cleanup based on which detector is active
       switch (detectorType) {
+        case 'gemini':
+          geminiPlateDetector.cleanup();
+          break;
         case 'custom':
           customYOLODetector.cleanup();
           break;
