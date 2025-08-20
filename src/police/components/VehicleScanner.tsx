@@ -723,11 +723,13 @@ const VehicleScanner = () => {
                 {/* Scanning Indicator */}
                 {isScanning && (
                   <div className={`absolute top-3 right-3 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center shadow-lg ${
+                    detectorType === 'gemini' ? 'bg-blue-600' :
                     detectorType === 'custom' ? 'bg-green-600' :
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'custom' ? 'AI Detection Active' :
+                    🔍 {detectorType === 'gemini' ? 'Gemini AI Active' :
+                         detectorType === 'custom' ? 'AI Detection Active' :
                          detectorType === 'yolo' ? 'YOLO Detection Active' : 'Detection Active'}
                   </div>
                 )}
