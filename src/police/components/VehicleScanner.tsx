@@ -15,6 +15,7 @@ import { useCamera } from '../hooks/useCamera';
 import { yoloPlateDetector, PlateDetectionResult } from '../utils/yoloPlateDetection';
 import { simplePlateDetector } from '../utils/simplePlateDetection';
 import { customYOLODetector } from '../utils/customModelDetection';
+import { geminiPlateDetector } from '../utils/geminiPlateDetection';
 import { useData } from '../../contexts/DataContext';
 import DetectionMetrics from './DetectionMetrics';
 
@@ -35,7 +36,7 @@ const VehicleScanner = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [usingSimpleDetector, setUsingSimpleDetector] = useState(false);
   const [usingCustomModel, setUsingCustomModel] = useState(false);
-  const [detectorType, setDetectorType] = useState<'custom' | 'yolo' | 'simple'>('custom');
+  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
   const autoStartRef = useRef(false);
