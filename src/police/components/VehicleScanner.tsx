@@ -64,7 +64,7 @@ const VehicleScanner = () => {
 
       // Small delay to ensure camera is fully ready
       const autoStartTimer = setTimeout(() => {
-        console.log('�� Auto-start timer triggered, calling handleStartScan');
+        console.log('⏰ Auto-start timer triggered, calling handleStartScan');
         handleStartScan();
       }, 1500); // Increased delay to ensure camera is ready
 
@@ -281,7 +281,7 @@ const VehicleScanner = () => {
 
       if (result && result.confidence > minConfidence &&
           (result.ocrConfidence || 0) > minOcrConfidence) {
-        console.log('✅ Plate detected successfully:', result);
+        console.log('�� Plate detected successfully:', result);
         setLastDetectionTime(new Date());
 
         // Don't set detection result yet - wait for database lookup
@@ -543,20 +543,8 @@ const VehicleScanner = () => {
     console.log('📊 Image data URL length:', imageDataUrl.length);
     console.log('📊 Image data format:', imageDataUrl.substring(0, 50));
 
-    // Set the captured image in state for display
+    // Set the captured image in state for processing (hidden from user)
     setCapturedImage(imageDataUrl);
-
-    // Show brief notification that image was captured
-    setScanResults({
-      plateNumber: 'Image Captured',
-      vehicleModel: 'Starting Analysis',
-      owner: 'Please wait',
-      status: 'Processing',
-      statusType: 'clean'
-    });
-
-    // Brief delay to show the capture feedback
-    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Reset scan results before detection
     setScanResults({
@@ -641,7 +629,7 @@ const VehicleScanner = () => {
       // Process the detection result
       if (result && result.plateNumber) {
         console.log('✅ Plate detected from captured image:', result);
-        console.log('���� Detection confidence:', result.confidence);
+        console.log('📊 Detection confidence:', result.confidence);
 
         // Always show the detected plate number, regardless of confidence
         const detectedPlateNumber = result.plateNumber;
