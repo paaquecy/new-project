@@ -2,7 +2,6 @@
 // This service handles loading and inference with the custom-trained license plate model
 
 import * as tf from '@tensorflow/tfjs';
-import { getRandomRegisteredPlate, getAllRegisteredPlates } from '../../lib/testVehicleDatabase';
 
 export interface CustomPlateDetectionResult {
   plateNumber: string;
