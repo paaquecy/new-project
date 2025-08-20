@@ -405,11 +405,11 @@ const VehicleScanner = () => {
       try {
         const result = await lookupVehicle(plateInput.trim());
         
-        if (result.vehicle) {
+        if (result && result.vehicle) {
           const vehicleResults = {
-            plateNumber: result.vehicle.plate_number,
-            vehicleModel: `${result.vehicle.year} ${result.vehicle.make} ${result.vehicle.model}`,
-            owner: result.vehicle.owner_name,
+            plateNumber: result.vehicle.plate_number || plateInput.trim(),
+            vehicleModel: `${result.vehicle.year || ''} ${result.vehicle.make || ''} ${result.vehicle.model || ''}`.trim() || 'Unknown',
+            owner: result.vehicle.owner_name || 'Unknown',
             status: result.outstandingViolations > 0 ? `${result.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
             statusType: result.outstandingViolations > 0 ? 'violation' : 'clean'
           };
@@ -418,22 +418,22 @@ const VehicleScanner = () => {
           // Record the scan in database
           await api.recordScan(plateInput.trim(), 'Manual', result);
         } else {
-          // Vehicle not found in database - show as invalid
+          // Vehicle not found in database - show as N/A
           setScanResults({
-            plateNumber: 'Invalid',
-            vehicleModel: 'Vehicle Not Registered',
+            plateNumber: plateInput.trim(),
+            vehicleModel: 'N/A',
             owner: 'N/A',
-            status: 'Invalid License Plate',
+            status: 'Not Found in Database',
             statusType: 'violation'
           });
         }
       } catch (error) {
         console.error('Vehicle lookup failed:', error);
         setScanResults({
-          plateNumber: 'Error',
-          vehicleModel: 'Lookup Failed',
-          owner: 'Error',
-          status: 'System Error',
+          plateNumber: plateInput.trim(),
+          vehicleModel: 'N/A',
+          owner: 'N/A',
+          status: 'Database Error',
           statusType: 'violation'
         });
       } finally {
