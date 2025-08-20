@@ -43,9 +43,11 @@ export function useCamera(): CameraHook {
       // Try multiple camera configurations
       let stream: MediaStream;
       const configs = [
-        // Basic config
+        // Basic config with back camera preference
         {
-          video: true,
+          video: {
+            facingMode: 'environment' // Use back camera on mobile devices
+          },
           audio: false
         },
         // Mobile-friendly config
@@ -61,7 +63,8 @@ export function useCamera(): CameraHook {
         {
           video: {
             width: { max: 640 },
-            height: { max: 480 }
+            height: { max: 480 },
+            facingMode: 'environment' // Use back camera on mobile devices
           },
           audio: false
         }

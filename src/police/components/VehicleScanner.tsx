@@ -190,7 +190,11 @@ const VehicleScanner = () => {
 
   const requestCameraPermission = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment' // Use back camera on mobile devices
+        }
+      });
       stream.getTracks().forEach(track => track.stop());
       setPermissionStatus('granted');
       alert('Camera permission granted! You can now start scanning.');
