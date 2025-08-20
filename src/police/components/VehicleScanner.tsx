@@ -701,13 +701,13 @@ const VehicleScanner = () => {
 
       console.log('✅ Captured image analysis completed');
     } catch (error) {
-      console.error('❌ Captured image analysis failed:', error);
+      console.error('❌ Analysis failed:', error);
       setPlateDetectedFromImage(false);
       setScanResults({
         plateNumber: 'N/A',
         vehicleModel: 'N/A',
         owner: 'N/A',
-        status: 'Detection Failed',
+        status: 'Analysis Failed',
         statusType: 'clean'
       });
       setDetectionResult(null);
