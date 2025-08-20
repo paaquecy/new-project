@@ -1077,16 +1077,9 @@ const VehicleScanner = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
                 <span className="text-sm font-medium text-gray-600">Plate Number:</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-semibold text-gray-800 font-mono truncate">
-                    {scanResults.plateNumber}
-                  </span>
-                  {scanResults.plateNumber !== 'N/A' && scanResults.plateNumber !== 'Capturing...' && scanResults.plateNumber !== 'Analyzing Captured Image...' && scanResults.plateNumber !== 'Looking up...' && (
-                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                      ✓ Detected
-                    </span>
-                  )}
-                </div>
+                <span className="text-sm font-semibold text-gray-800 font-mono truncate">
+                  {scanResults.plateNumber}
+                </span>
               </div>
               
               <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
