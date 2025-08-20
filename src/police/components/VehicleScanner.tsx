@@ -213,7 +213,7 @@ const VehicleScanner = () => {
     // Increment detection attempts first to show activity
     setDetectionAttempts(prev => {
       const newCount = prev + 1;
-      console.log('📊 Detection attempt #', newCount);
+      console.log('��� Detection attempt #', newCount);
       return newCount;
     });
 
@@ -699,6 +699,7 @@ const VehicleScanner = () => {
         }
       } else {
         console.log('❌ No plate detected in captured image');
+        setPlateDetectedFromImage(false);
         setScanResults({
           plateNumber: 'N/A',
           vehicleModel: 'N/A',
