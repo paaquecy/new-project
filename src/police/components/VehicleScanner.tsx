@@ -595,26 +595,54 @@ const VehicleScanner = () => {
 
       let result = null;
 
-      // Create an image element from the captured image data URL
-      console.log('🖼️ Creating image from captured data URL...');
-      console.log('📊 Captured image data length:', capturedImage?.length || 0);
-      console.log('📊 Captured image type:', capturedImage?.substring(0, 50));
-
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = () => {
-          console.log('✅ Image loaded successfully:', { width: img.width, height: img.height });
-          resolve(img);
-        };
-        img.onerror = (errorEvent) => {
-          console.error('❌ Image loading failed:', errorEvent);
-          reject(new Error(`Failed to load captured image: ${errorEvent.type}`));
-        };
-        img.src = capturedImage;
-      });
-
-      // Try detection on the captured image using the appropriate detector
+      // Try using the canvas directly first (more reliable)
+      console.log('🎨 Attempting detection using canvas directly...');
       try {
+        const canvas = captureFrame(); // Get the canvas that was used for capture
+        if (canvas) {
+          console.log('✅ Using canvas for detection:', { width: canvas.width, height: canvas.height });
+
+          switch (detectorType) {
+            case 'gemini':
+              result = await geminiPlateDetector.detectPlate(canvas);
+              break;
+            case 'custom':
+              result = await customYOLODetector.detectPlate(canvas);
+              break;
+            case 'yolo':
+              result = await yoloPlateDetector.detectPlate(canvas);
+              break;
+            case 'simple':
+              result = await simplePlateDetector.detectPlate(canvas);
+              break;
+            default:
+              result = await geminiPlateDetector.detectPlate(canvas);
+          }
+        } else {
+          throw new Error('Canvas not available');
+        }
+      } catch (canvasError) {
+        console.warn('❌ Canvas detection failed, trying Image element approach:', canvasError);
+
+        // Fallback: Create an image element from the captured image data URL
+        console.log('🖼️ Fallback: Creating image from captured data URL...');
+        console.log('📊 Captured image data length:', capturedImage?.length || 0);
+        console.log('📊 Captured image type:', capturedImage?.substring(0, 50));
+
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = () => {
+            console.log('✅ Image loaded successfully:', { width: img.width, height: img.height });
+            resolve(img);
+          };
+          img.onerror = (errorEvent) => {
+            console.error('❌ Image loading failed:', errorEvent);
+            reject(new Error(`Failed to load captured image: ${errorEvent.type}`));
+          };
+          img.src = capturedImage;
+        });
+
+        // Try detection on the image element
         switch (detectorType) {
           case 'gemini':
             result = await geminiPlateDetector.detectPlate(img);
@@ -631,9 +659,6 @@ const VehicleScanner = () => {
           default:
             result = await geminiPlateDetector.detectPlate(img);
         }
-      } catch (detectionError) {
-        console.error('Detection failed on captured image:', detectionError);
-        result = null;
       }
 
       console.log('🎯 Detection result for captured image:', result);
