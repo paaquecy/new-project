@@ -63,7 +63,8 @@ export function useCamera(): CameraHook {
         {
           video: {
             width: { max: 640 },
-            height: { max: 480 }
+            height: { max: 480 },
+            facingMode: 'environment' // Use back camera on mobile devices
           },
           audio: false
         }
