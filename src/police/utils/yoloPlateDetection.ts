@@ -249,40 +249,179 @@ export class YOLOPlateDetector {
   }
 
   private async fallbackDetection(imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<any[]> {
-    console.log('Using fallback detection method...');
-    
+    console.log('Using fallback detection method with real image analysis...');
+
     // Create canvas for image processing
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d')!;
-    
-    canvas.width = 640;
-    canvas.height = 480;
+
+    const width = imageElement instanceof HTMLVideoElement ? imageElement.videoWidth || 640 : 640;
+    const height = imageElement instanceof HTMLVideoElement ? imageElement.videoHeight || 480 : 480;
+
+    canvas.width = width;
+    canvas.height = height;
     ctx.drawImage(imageElement as any, 0, 0, canvas.width, canvas.height);
-    
-    // Simple heuristic: look for rectangular regions that might be plates
-    // This is a simplified approach - real implementation would be more sophisticated
+
+    // Analyze the actual image for rectangular regions
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Simulate finding a license plate region
     const detections = [];
-    
-    // Look for potential plate regions (simplified algorithm)
-    for (let attempts = 0; attempts < 3; attempts++) {
-      const x = Math.random() * (canvas.width - 200) + 50;
-      const y = Math.random() * (canvas.height - 100) + 50;
-      const width = 150 + Math.random() * 100;
-      const height = 50 + Math.random() * 30;
-      
-      // Calculate a confidence based on the region's characteristics
-      const confidence = 0.6 + Math.random() * 0.3;
-      
-      detections.push({
-        confidence,
-        boundingBox: { x, y, width, height }
-      });
+
+    // Convert to grayscale and detect edges
+    const grayCanvas = this.convertToGrayscale(canvas);
+    const edgeRegions = this.findRectangularRegions(grayCanvas);
+
+    // Filter regions that look like license plates
+    for (const region of edgeRegions) {
+      const aspectRatio = region.width / region.height;
+      const area = region.width * region.height;
+
+      // License plates typically have aspect ratio between 2:1 and 5:1
+      if (aspectRatio >= 2 && aspectRatio <= 5 && area >= 1500 && area <= 15000) {
+        const confidence = this.calculateRegionConfidence(imageData.data, region, canvas.width);
+
+        if (confidence > 0.3) {
+          detections.push({
+            confidence,
+            boundingBox: region
+          });
+        }
+      }
     }
-    
-    return detections.sort((a, b) => b.confidence - a.confidence);
+
+    return detections.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+  }
+
+  private convertToGrayscale(canvas: HTMLCanvasElement): HTMLCanvasElement {
+    const grayCanvas = document.createElement('canvas');
+    const grayCtx = grayCanvas.getContext('2d')!;
+
+    grayCanvas.width = canvas.width;
+    grayCanvas.height = canvas.height;
+
+    const imageData = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      data[i] = gray;
+      data[i + 1] = gray;
+      data[i + 2] = gray;
+    }
+
+    grayCtx.putImageData(imageData, 0, 0);
+    return grayCanvas;
+  }
+
+  private findRectangularRegions(canvas: HTMLCanvasElement): Array<{x: number, y: number, width: number, height: number}> {
+    const ctx = canvas.getContext('2d')!;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const regions = [];
+
+    const minWidth = 80;
+    const maxWidth = 300;
+    const minHeight = 20;
+    const maxHeight = 80;
+
+    // Sample the image for rectangular regions
+    for (let y = 0; y < canvas.height - minHeight; y += 15) {
+      for (let x = 0; x < canvas.width - minWidth; x += 15) {
+        for (let w = minWidth; w <= maxWidth && x + w < canvas.width; w += 30) {
+          for (let h = minHeight; h <= maxHeight && y + h < canvas.height; h += 15) {
+            const edgeScore = this.calculateEdgeScore(data, x, y, w, h, canvas.width);
+
+            if (edgeScore > 0.3) {
+              regions.push({ x, y, width: w, height: h });
+            }
+          }
+        }
+      }
+    }
+
+    return this.mergeOverlappingRegions(regions);
+  }
+
+  private calculateEdgeScore(data: Uint8ClampedArray, x: number, y: number, w: number, h: number, imageWidth: number): number {
+    let edgePixels = 0;
+    let totalPixels = 0;
+
+    // Sample the region and count edge pixels
+    for (let dy = 0; dy < h; dy += 3) {
+      for (let dx = 0; dx < w; dx += 3) {
+        const px = x + dx;
+        const py = y + dy;
+
+        if (px < imageWidth - 1 && py < data.length / (imageWidth * 4) - 1) {
+          const idx = (py * imageWidth + px) * 4;
+          const current = data[idx];
+
+          // Check for edges
+          const rightIdx = idx + 4;
+          const bottomIdx = idx + imageWidth * 4;
+
+          if (rightIdx < data.length && bottomIdx < data.length) {
+            const horizontalGrad = Math.abs(current - data[rightIdx]);
+            const verticalGrad = Math.abs(current - data[bottomIdx]);
+
+            if (horizontalGrad > 30 || verticalGrad > 30) {
+              edgePixels++;
+            }
+
+            totalPixels++;
+          }
+        }
+      }
+    }
+
+    return totalPixels > 0 ? edgePixels / totalPixels : 0;
+  }
+
+  private mergeOverlappingRegions(regions: Array<{x: number, y: number, width: number, height: number}>): Array<{x: number, y: number, width: number, height: number}> {
+    const merged = [];
+
+    for (const region of regions) {
+      let hasOverlap = false;
+
+      for (const existing of merged) {
+        if (this.regionsOverlap(region, existing)) {
+          hasOverlap = true;
+          break;
+        }
+      }
+
+      if (!hasOverlap) {
+        merged.push(region);
+      }
+    }
+
+    return merged;
+  }
+
+  private regionsOverlap(rect1: {x: number, y: number, width: number, height: number}, rect2: {x: number, y: number, width: number, height: number}): boolean {
+    return !(rect1.x + rect1.width < rect2.x ||
+             rect2.x + rect2.width < rect1.x ||
+             rect1.y + rect1.height < rect2.y ||
+             rect2.y + rect2.height < rect1.y);
+  }
+
+  private calculateRegionConfidence(data: Uint8ClampedArray, region: {x: number, y: number, width: number, height: number}, imageWidth: number): number {
+    const edgeScore = this.calculateEdgeScore(data, region.x, region.y, region.width, region.height, imageWidth);
+    const aspectRatio = region.width / region.height;
+    const area = region.width * region.height;
+
+    let confidence = edgeScore;
+
+    // Boost confidence for good aspect ratio (license plate like)
+    if (aspectRatio >= 2.5 && aspectRatio <= 4.5) {
+      confidence += 0.2;
+    }
+
+    // Boost confidence for reasonable size
+    if (area >= 3000 && area <= 10000) {
+      confidence += 0.1;
+    }
+
+    return Math.min(confidence, 1.0);
   }
 
   private async extractPlateRegion(imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement, detection: any): Promise<HTMLCanvasElement> {
@@ -314,38 +453,83 @@ export class YOLOPlateDetector {
 
         console.log('Tesseract OCR result:', { text: text.trim(), confidence });
 
-        return {
-          text: text.trim(),
-          confidence: confidence / 100 // Convert to 0-1 range
-        };
+        const cleanText = text.trim().replace(/\s+/g, ' ');
+
+        if (cleanText && cleanText.length >= 5) {
+          return {
+            text: cleanText,
+            confidence: confidence / 100 // Convert to 0-1 range
+          };
+        }
       } catch (error) {
-        console.error('Tesseract OCR failed, using fallback:', error);
+        console.error('Tesseract OCR failed:', error);
       }
     }
 
-    // Fallback OCR method when Tesseract is not available
+    // Fallback: try basic image analysis
     try {
-      console.log('Using fallback text extraction...');
+      console.log('Tesseract not available, performing basic image analysis...');
 
-      // Simple fallback: generate a simulated plate number
-      // In a real implementation, you might use a different OCR library or service
-      const simulatedPlates = [
-        'GH-1234-20', 'AS-5678-21', 'BA-9876-19', 'WR-3456-22', 'UE-7890-23',
-        'CR-2468-20', 'TV-1357-21', 'NR-8642-19', 'VR-9753-22', 'ER-1593-20'
-      ];
+      const basicOCR = await this.performBasicImageAnalysis(plateCanvas);
+      if (basicOCR) {
+        return basicOCR;
+      }
 
-      const plateText = simulatedPlates[Math.floor(Math.random() * simulatedPlates.length)];
-
-      console.log('Fallback OCR result:', plateText);
-
-      return {
-        text: plateText,
-        confidence: 0.75 + Math.random() * 0.2 // Random confidence between 0.75-0.95
-      };
+      console.log('No valid text detected in plate region');
+      return null;
     } catch (error) {
       console.error('All OCR methods failed:', error);
       return null;
     }
+  }
+
+  private async performBasicImageAnalysis(canvas: HTMLCanvasElement): Promise<{text: string, confidence: number} | null> {
+    const ctx = canvas.getContext('2d')!;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Analyze image characteristics to determine if it contains readable text
+    let textPixels = 0;
+    let totalPixels = 0;
+    let contrastSum = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const gray = r * 0.299 + g * 0.587 + b * 0.114;
+
+      // Look for high contrast regions that might be text
+      if (i + 4 < data.length) {
+        const nextR = data[i + 4];
+        const nextG = data[i + 5];
+        const nextB = data[i + 6];
+        const nextGray = nextR * 0.299 + nextG * 0.587 + nextB * 0.114;
+
+        const contrast = Math.abs(gray - nextGray);
+        contrastSum += contrast;
+
+        if (contrast > 50) {
+          textPixels++;
+        }
+      }
+
+      totalPixels++;
+    }
+
+    const textRatio = textPixels / totalPixels;
+    const avgContrast = contrastSum / totalPixels;
+
+    // If the image doesn't have sufficient text-like characteristics, return null
+    if (textRatio < 0.1 || avgContrast < 20) {
+      console.log('Image does not appear to contain readable text');
+      return null;
+    }
+
+    // Basic pattern recognition would go here
+    // For now, return null to avoid generating fake data
+    console.log('Image appears to contain text but basic OCR cannot extract it');
+    return null;
   }
 
   private isValidPlateFormat(text: string): boolean {
