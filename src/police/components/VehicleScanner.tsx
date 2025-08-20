@@ -281,7 +281,7 @@ const VehicleScanner = () => {
 
       if (result && result.confidence > minConfidence &&
           (result.ocrConfidence || 0) > minOcrConfidence) {
-        console.log('�� Plate detected successfully:', result);
+        console.log('✅ Plate detected successfully:', result);
         setLastDetectionTime(new Date());
 
         // Don't set detection result yet - wait for database lookup
@@ -546,9 +546,9 @@ const VehicleScanner = () => {
     // Set the captured image in state for processing (hidden from user)
     setCapturedImage(imageDataUrl);
 
-    // Reset scan results before detection
+    // Show analysis in progress
     setScanResults({
-      plateNumber: 'Analyzing Captured Image...',
+      plateNumber: 'Analyzing...',
       vehicleModel: 'Processing',
       owner: 'Please wait',
       status: 'AI Analysis in Progress',
