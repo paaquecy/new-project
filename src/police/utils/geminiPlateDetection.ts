@@ -47,15 +47,15 @@ export class GeminiPlateDetector {
 
       // Convert image to base64
       const base64Image = await this.convertToBase64(imageElement);
-      
-      if (!this.apiKey) {
-        console.log('No Gemini API key available, using fallback analysis');
+
+      if (!this.apiKey || this.apiKey === 'test-key-for-debugging') {
+        console.log('No valid Gemini API key available, using fallback analysis');
         return this.fallbackAnalysis(imageElement);
       }
 
       // Send request to Gemini Vision API
       const analysisResult = await this.analyzeWithGemini(base64Image);
-      
+
       if (analysisResult) {
         console.log('✅ Gemini successfully detected license plate:', analysisResult);
         return analysisResult;
@@ -66,7 +66,20 @@ export class GeminiPlateDetector {
 
     } catch (error) {
       console.error('Error in Gemini plate detection:', error);
-      return null;
+
+      // If it's an API key issue, guide the user
+      if (error instanceof Error && (
+        error.message.includes('Invalid or missing Gemini API key') ||
+        error.message.includes('API error: 403') ||
+        error.message.includes('API error: 401')
+      )) {
+        console.error('❌ Gemini API authentication failed. Please set a valid VITE_GEMINI_API_KEY environment variable.');
+        console.error('ℹ️  Get your API key from: https://aistudio.google.com/app/apikey');
+      }
+
+      // Fall back to other detection methods
+      console.log('🔄 Falling back to alternative detection methods...');
+      return this.fallbackAnalysis(imageElement);
     }
   }
 
