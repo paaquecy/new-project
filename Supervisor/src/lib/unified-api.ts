@@ -119,6 +119,66 @@ export interface DVLAAnalytics {
   fine_payment_rate: number;
 }
 
+// Mock violations store that persists in memory
+const mockViolationsStore = [
+  {
+    id: 'mock-violation-1',
+    plate_number: 'GS-1657-20',
+    vehicle_id: '1',
+    officer_id: '1',
+    violation_type: 'Speeding',
+    violation_details: 'Exceeding speed limit by 15 mph',
+    location: 'Main Street, Accra',
+    status: 'pending',
+    evidence_urls: ['https://example.com/evidence1.jpg'],
+    fine_amount: 100,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  },
+  {
+    id: 'mock-violation-2',
+    plate_number: 'XYZ789',
+    vehicle_id: '2',
+    officer_id: '1',
+    violation_type: 'Parking',
+    violation_details: 'Parking in no parking zone',
+    location: 'High Street, Manchester',
+    status: 'pending',
+    evidence_urls: ['https://example.com/evidence2.jpg'],
+    fine_amount: 50,
+    created_at: new Date(Date.now() - 86400000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 'mock-violation-3',
+    plate_number: 'DEF456',
+    vehicle_id: '3',
+    officer_id: '2',
+    violation_type: 'Red Light',
+    violation_details: 'Running red light at intersection',
+    location: 'Oxford Street, Birmingham',
+    status: 'approved',
+    evidence_urls: ['https://example.com/evidence3.jpg'],
+    fine_amount: 75,
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    updated_at: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 'mock-violation-4',
+    plate_number: 'ABC123',
+    vehicle_id: '4',
+    officer_id: '2',
+    violation_type: 'Illegal Parking',
+    violation_details: 'Parked in disabled spot without permit',
+    location: 'Shopping Mall, Accra',
+    status: 'rejected',
+    evidence_urls: ['https://example.com/evidence4.jpg'],
+    fine_amount: 150,
+    created_at: new Date(Date.now() - 259200000).toISOString(),
+    updated_at: new Date(Date.now() - 172800000).toISOString()
+  }
+];
+
 class UnifiedAPIClient {
   private token: string | null = null;
   private baseUrl: string;
@@ -307,67 +367,62 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/violations') && options.method === 'GET') {
-      const mockViolations = [
-        {
-          id: 'mock-violation-1',
-          plate_number: 'GS-1657-20',
-          vehicle_id: '1',
-          officer_id: '1',
-          violation_type: 'Speeding',
-          violation_details: 'Exceeding speed limit by 15 mph',
-          location: 'Main Street, Accra',
-          status: 'pending',
-          evidence_urls: ['https://example.com/evidence1.jpg'],
-          fine_amount: 100,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-violation-2',
-          plate_number: 'XYZ789',
-          vehicle_id: '2',
-          officer_id: '1',
-          violation_type: 'Parking',
-          violation_details: 'Parking in no parking zone',
-          location: 'High Street, Manchester',
-          status: 'pending',
-          evidence_urls: ['https://example.com/evidence2.jpg'],
-          fine_amount: 50,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'mock-violation-3',
-          plate_number: 'DEF456',
-          vehicle_id: '3',
-          officer_id: '2',
-          violation_type: 'Red Light',
-          violation_details: 'Running red light at intersection',
-          location: 'Oxford Street, Birmingham',
-          status: 'approved',
-          evidence_urls: ['https://example.com/evidence3.jpg'],
-          fine_amount: 75,
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
-      
-      return { data: mockViolations as T };
+      // Parse query parameters from endpoint
+      const url = new URL(endpoint, 'http://localhost');
+      const statusParam = url.searchParams.get('status');
+
+      // Filter violations by status if provided
+      let filteredViolations = mockViolationsStore;
+      if (statusParam) {
+        filteredViolations = mockViolationsStore.filter(v => v.status === statusParam);
+      }
+
+      return { data: filteredViolations as T };
     }
 
     if (endpoint.includes('/violations') && options.method === 'POST') {
+      const requestBody = options.body ? JSON.parse(options.body as string) : {};
+      const newViolation = {
+        id: 'mock-violation-' + Date.now(),
+        plate_number: requestBody.plate_number || 'GS-1657-20',
+        vehicle_id: requestBody.vehicle_id || '1',
+        officer_id: requestBody.officer_id || '1',
+        violation_type: requestBody.violation_type || 'Speeding',
+        violation_details: requestBody.violation_details || 'Violation details',
+        location: requestBody.location || 'Location not specified',
+        status: 'pending',
+        evidence_urls: requestBody.evidence_urls || [],
+        fine_amount: requestBody.fine_amount || 100,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Add to mock store
+      mockViolationsStore.push(newViolation);
+
       return {
-        data: {
-          id: 'mock-violation-' + Date.now(),
-          plate_number: 'GS-1657-20',
-          violation_type: 'Speeding',
-          status: 'pending',
-          created_at: new Date().toISOString()
-        } as T
+        data: newViolation as T
       };
     }
 
     if (endpoint.includes('/violations') && options.method === 'PUT') {
+      // Extract violation ID from endpoint
+      const violationIdMatch = endpoint.match(/\/violations\/([^\/]+)\/(approve|reject)/);
+      if (violationIdMatch) {
+        const violationId = violationIdMatch[1];
+        const action = violationIdMatch[2];
+
+        // Find and update violation in store
+        const violationIndex = mockViolationsStore.findIndex(v => v.id === violationId);
+        if (violationIndex !== -1) {
+          mockViolationsStore[violationIndex] = {
+            ...mockViolationsStore[violationIndex],
+            status: action === 'approve' ? 'approved' : 'rejected',
+            updated_at: new Date().toISOString()
+          };
+        }
+      }
+
       return {
         data: {
           success: true,

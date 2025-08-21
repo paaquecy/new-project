@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar, User, Download, CheckCircle, XCircle, Filter } from 'lucide-react';
-import { mockViolations } from '../data/mockData';
+import { unifiedAPI } from '../lib/unified-api';
 
 const History: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -8,9 +8,75 @@ const History: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [violations, setViolations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const reviewedViolations = mockViolations.filter(v => v.status !== 'pending');
-  const officers = Array.from(new Set(mockViolations.map(v => v.capturedBy)));
+  // Function to fetch violations
+  const fetchViolations = async () => {
+    setLoading(true);
+    try {
+      // Fetch both approved and rejected violations
+      const [approvedResponse, rejectedResponse] = await Promise.all([
+        unifiedAPI.getViolations(undefined, 'approved'),
+        unifiedAPI.getViolations(undefined, 'rejected')
+      ]);
+
+      const allViolations = [];
+
+      if (approvedResponse.data) {
+        allViolations.push(...approvedResponse.data.map(v => ({
+          id: v.id,
+          plateNumber: v.plate_number,
+          offense: v.violation_type,
+          description: v.violation_details,
+          capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+          dateTime: v.created_at || new Date().toISOString(),
+          status: v.status,
+          location: v.location || 'Location not specified',
+          reviewedBy: 'Supervisor',
+          reviewedAt: v.updated_at || v.created_at
+        })));
+      }
+
+      if (rejectedResponse.data) {
+        allViolations.push(...rejectedResponse.data.map(v => ({
+          id: v.id,
+          plateNumber: v.plate_number,
+          offense: v.violation_type,
+          description: v.violation_details,
+          capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+          dateTime: v.created_at || new Date().toISOString(),
+          status: v.status,
+          location: v.location || 'Location not specified',
+          reviewedBy: 'Supervisor',
+          reviewedAt: v.updated_at || v.created_at,
+          rejectionReason: 'Rejected by supervisor'
+        })));
+      }
+
+      // Sort by review date (most recent first)
+      allViolations.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+      setViolations(allViolations);
+    } catch (error) {
+      console.error('Failed to fetch violations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch reviewed violations on component mount
+  useEffect(() => {
+    fetchViolations();
+  }, []);
+
+  // Set up polling to refresh data every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchViolations, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const reviewedViolations = violations;
+  const officers = Array.from(new Set(violations.map(v => v.capturedBy)));
 
   const filteredViolations = reviewedViolations.filter(violation => {
     const matchesSearch = violation.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,8 +95,191 @@ const History: React.FC = () => {
   });
 
   const handleExport = (format: 'csv' | 'pdf') => {
-    console.log(`Exporting ${filteredViolations.length} records as ${format.toUpperCase()}`);
-    alert(`Exporting ${filteredViolations.length} records as ${format.toUpperCase()}. Feature coming soon!`);
+    console.log('Export triggered:', format);
+    console.log('Filtered violations count:', filteredViolations.length);
+    console.log('Filtered violations data:', filteredViolations);
+
+    if (filteredViolations.length === 0) {
+      alert('No data to export. Please adjust your filters.');
+      return;
+    }
+
+    try {
+      if (format === 'csv') {
+        exportToCSV();
+      } else if (format === 'pdf') {
+        exportToPDF();
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`Export failed: ${error.message}`);
+    }
+  };
+
+  const exportToCSV = () => {
+    try {
+      console.log('Starting CSV export...');
+
+      // Define CSV headers
+      const headers = [
+        'Plate Number',
+        'Offense',
+        'Description',
+        'Officer',
+        'Date Captured',
+        'Status',
+        'Reviewed By',
+        'Review Date',
+        'Location'
+      ];
+
+      // Convert data to CSV format
+      const csvData = filteredViolations.map(violation => [
+        violation.plateNumber || '',
+        violation.offense || '',
+        violation.description || '',
+        violation.capturedBy || '',
+        violation.dateTime ? formatDateTime(violation.dateTime) : '',
+        violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected',
+        violation.reviewedBy || '',
+        violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '',
+        violation.location || ''
+      ]);
+
+      // Combine headers and data
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+      console.log('CSV content generated:', csvContent.substring(0, 200) + '...');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const filename = `violation-history-${new Date().toISOString().split('T')[0]}.csv`;
+
+      console.log('Creating download link...');
+
+      // Use a more compatible download method
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      // Show success message
+      console.log('CSV export completed successfully');
+      alert(`Successfully exported ${filteredViolations.length} records to CSV file: ${filename}`);
+
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert(`Failed to export CSV: ${error.message}`);
+    }
+  };
+
+  const exportToPDF = () => {
+    try {
+      console.log('Starting PDF export...');
+
+      // Alternative PDF export method using window.print
+      const printContent = `
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1>Traffic Violation History Report</h1>
+            <h3>Supervisor Dashboard</h3>
+          </div>
+
+          <div style="text-align: right; margin-bottom: 20px; font-size: 12px; color: #666;">
+            Generated on: ${new Date().toLocaleString()}
+          </div>
+
+          <p><strong>Total Records:</strong> ${filteredViolations.length}</p>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background-color: #f8f9fa;">
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Plate Number</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Offense</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Officer</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Date Captured</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Status</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Reviewed By</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px;">Review Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredViolations.map(violation => `
+                <tr>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;"><strong>${violation.plateNumber || ''}</strong></td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${violation.offense || ''}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${violation.capturedBy || ''}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${violation.dateTime ? formatDateTime(violation.dateTime) : ''}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px; color: ${violation.status === 'approved' || violation.status === 'accepted' ? '#16a34a' : '#dc2626'}; font-weight: bold;">
+                    ${violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected'}
+                  </td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${violation.reviewedBy || '-'}</td>
+                  <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 30px; text-align: center; font-size: 10px; color: #666;">
+            <p>This report was generated automatically by the Traffic Management System</p>
+          </div>
+        </div>
+      `;
+
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Violation History Report</title>
+            <style>
+              @media print {
+                body { margin: 0; }
+                @page { size: A4; margin: 1cm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent}
+          </body>
+          </html>
+        `);
+
+        printWindow.document.close();
+
+        // Wait for content to load then trigger print
+        printWindow.addEventListener('load', () => {
+          setTimeout(() => {
+            printWindow.print();
+            console.log('PDF export completed successfully');
+            alert(`Successfully generated PDF report with ${filteredViolations.length} records! Use your browser's print dialog to save as PDF.`);
+          }, 500);
+        });
+
+      } else {
+        // Fallback: show alert about popup blocker
+        alert('PDF export requires popup windows. Please allow popups for this site and try again.');
+      }
+
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert(`Failed to export PDF: ${error.message}`);
+    }
   };
 
   const formatDateTime = (dateTime: string) => {
@@ -38,11 +287,11 @@ const History: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'accepted') {
+    if (status === 'approved' || status === 'accepted') {
       return (
         <div className="flex items-center space-x-1 text-green-700 bg-green-100 px-2 py-1 rounded-full text-sm">
           <CheckCircle className="h-3 w-3" />
-          <span>Accepted</span>
+          <span>Approved</span>
         </div>
       );
     } else if (status === 'rejected') {
@@ -104,7 +353,8 @@ const History: React.FC = () => {
               className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
             >
               <option value="">All Status</option>
-              <option value="accepted">Accepted</option>
+              <option value="approved">Approved</option>
+              <option value="accepted">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>
@@ -207,7 +457,14 @@ const History: React.FC = () => {
           </table>
         </div>
 
-        {filteredViolations.length === 0 && (
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Loading violation history...</h3>
+          </div>
+        )}
+
+        {!loading && filteredViolations.length === 0 && (
           <div className="text-center py-12">
             <Filter className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No history found</h3>
