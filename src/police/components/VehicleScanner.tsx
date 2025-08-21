@@ -115,6 +115,11 @@ const VehicleScanner = () => {
       // Try Gemini Vision API first
       try {
         console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
+
+        // Run diagnostics
+        const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
+        DetectionDiagnostics.logDiagnostics(diagnostics);
+
         await yoloV8PlateDetector.initialize();
         const status = yoloV8PlateDetector.getStatus();
         setDetectorStatus(status);
