@@ -112,7 +112,9 @@ const VehicleScanner = () => {
     const initializeDetector = async () => {
       // Try Gemini Vision API first
       try {
-        console.log('Skipping Gemini initialization (replaced with YOLO+OCR)...');
+        console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
+        await yoloV8PlateDetector.initialize();
+        console.log('✅ YOLOv8 + Enhanced OCR initialized successfully');
         setDetectorType('gemini');
         setUsingCustomModel(false);
         setUsingSimpleDetector(false);
@@ -577,7 +579,7 @@ const VehicleScanner = () => {
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
-            console.log('🤖 Using default YOLO+OCR for plate detection...');
+            console.log('���� Using default YOLO+OCR for plate detection...');
             result = await yoloPlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
