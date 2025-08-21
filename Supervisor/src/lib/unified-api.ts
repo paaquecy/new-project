@@ -381,14 +381,27 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/violations') && options.method === 'POST') {
+      const requestBody = options.body ? JSON.parse(options.body as string) : {};
+      const newViolation = {
+        id: 'mock-violation-' + Date.now(),
+        plate_number: requestBody.plate_number || 'GS-1657-20',
+        vehicle_id: requestBody.vehicle_id || '1',
+        officer_id: requestBody.officer_id || '1',
+        violation_type: requestBody.violation_type || 'Speeding',
+        violation_details: requestBody.violation_details || 'Violation details',
+        location: requestBody.location || 'Location not specified',
+        status: 'pending',
+        evidence_urls: requestBody.evidence_urls || [],
+        fine_amount: requestBody.fine_amount || 100,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Add to mock store
+      mockViolationsStore.push(newViolation);
+
       return {
-        data: {
-          id: 'mock-violation-' + Date.now(),
-          plate_number: 'GS-1657-20',
-          violation_type: 'Speeding',
-          status: 'pending',
-          created_at: new Date().toISOString()
-        } as T
+        data: newViolation as T
       };
     }
 
