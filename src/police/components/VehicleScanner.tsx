@@ -409,7 +409,7 @@ const VehicleScanner = () => {
   }, [cameraActive, scanInterval, stopCamera, lookupVehicle, detectorType]);
 
   const handleStartScan = async () => {
-    console.log('���� handleStartScan called');
+    console.log('🎬 handleStartScan called');
     console.log('📊 Current states:', { cameraActive, cameraLoading, cameraError, permissionStatus, isScanning, scanInterval: !!scanInterval });
 
     try {
@@ -580,25 +580,7 @@ const VehicleScanner = () => {
             result = await yoloPlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
-        console.warn('❌ Detection failed:', canvasError);
-
-        // Check if it's a Gemini API issue
-        if (canvasError instanceof Error && canvasError.message.includes('Gemini API')) {
-          console.error('🚨 Gemini API Error:', canvasError.message);
-          setScanResults({
-            plateNumber: 'API Error',
-            vehicleModel: 'N/A',
-            owner: 'N/A',
-            status: 'Gemini API configuration needed',
-            statusType: 'violation'
-          });
-
-          // Show user-friendly error
-          alert('Gemini AI service is not properly configured. Please check the console for setup instructions.');
-          return;
-        }
-
-        console.warn('❌ Canvas detection failed, trying Image element approach:', canvasError);
+        console.warn('❌ Detection failed, trying Image element approach:', canvasError);
 
         // Fallback: Create an image element from the captured image data URL
         console.log('🖼️ Fallback: Creating image from captured data URL...');
@@ -710,7 +692,7 @@ const VehicleScanner = () => {
         setDetectionResult(null);
       }
 
-      console.log('✅ Captured image analysis completed');
+      console.log('��� Captured image analysis completed');
     } catch (error) {
       console.error('❌ Analysis failed:', error);
       setPlateDetectedFromImage(false);
