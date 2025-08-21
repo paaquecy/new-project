@@ -139,7 +139,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
             <div className="flex items-center justify-center mb-4">
               <Shield className="w-8 h-8 text-blue-600 mr-2" />
             </div>
-            <h2 className="text-base sm:text-lg text-gray-800 mb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
               Login to Plate Recognition System
             </h2>
             <p className="text-sm text-gray-600">
