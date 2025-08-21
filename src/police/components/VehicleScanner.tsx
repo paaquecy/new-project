@@ -740,16 +740,7 @@ const VehicleScanner = () => {
       <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
         <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-blue-600" />
-          Live Camera Feed with {
-            detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
-            detectorType === 'custom' ? 'Custom Trained YOLO' :
-            detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'
-          } Plate Detection
-          {(detectorType === 'gemini' || detectorType === 'yolo') && (
-            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-              YOLOv8+OCR
-            </span>
-          )}
+          Live Camera Feed
           {detectorType === 'custom' && (
             <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
               Custom Model
@@ -861,9 +852,7 @@ const VehicleScanner = () => {
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'gemini' ? 'YOLOv8+OCR Active' :
-                         detectorType === 'custom' ? 'Custom AI Active' :
-                         detectorType === 'yolo' ? 'YOLOv8+OCR Active' : 'Detection Active'}
+                    🔍 Detection Active
                   </div>
                 )}
 
@@ -944,9 +933,7 @@ const VehicleScanner = () => {
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'gemini' ? 'YOLOv8+OCR' :
-                 detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
+                Detection Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
             <span className="text-gray-400">
