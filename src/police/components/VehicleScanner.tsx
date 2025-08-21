@@ -954,25 +954,6 @@ const VehicleScanner = () => {
             </span>
           </div>
 
-          {/* Debug Information Panel */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-xs">
-            <div className="font-semibold text-gray-700 mb-2">Debug Information:</div>
-            <div className="grid grid-cols-2 gap-2 text-gray-600">
-              <span>Component Mounted: {isMounted ? '✅' : '❌'}</span>
-              <span>Video Ref: {videoRef.current ? '✅' : '❌'}</span>
-              <span>Camera Active: {cameraActive ? '✅' : '❌'}</span>
-              <span>Detection Active: {isScanning ? '🔍' : '⏸️'}</span>
-              <span>Detection Attempts: {detectionAttempts}</span>
-              <span>Last Detection: {lastDetectionTime ? lastDetectionTime.toLocaleTimeString() : 'None'}</span>
-              <span>Permission: {permissionStatus}</span>
-              <span>HTTPS: {window.isSecureContext ? '✅' : '❌'}</span>
-            </div>
-            {cameraError && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700">
-                Error: {cameraError}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Hidden canvas for frame capture */}
