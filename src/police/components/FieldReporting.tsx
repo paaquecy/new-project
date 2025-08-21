@@ -98,8 +98,114 @@ const FieldReporting = () => {
   };
 
   const handleAttachMedia = () => {
-    // Simulate media attachment process
-    alert('Media attachment feature would open camera/file picker here');
+    setShowMediaOptions(true);
+  };
+
+  const handleFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+    setShowMediaOptions(false);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+          const url = URL.createObjectURL(file);
+          const newMedia = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            type: file.type.startsWith('image/') ? 'image' as const : 'video' as const,
+            url,
+            name: file.name,
+            size: file.size
+          };
+          setAttachedMedia(prev => [...prev, newMedia]);
+        }
+      });
+    }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCameraCapture = async () => {
+    setShowMediaOptions(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      setCameraStream(stream);
+      setShowCameraCapture(true);
+
+      // Set up video stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please check permissions and try again.');
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const newMedia = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              type: 'image' as const,
+              url,
+              name: `photo_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`,
+              size: blob.size
+            };
+            setAttachedMedia(prev => [...prev, newMedia]);
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    }
+    closeCameraCapture();
+  };
+
+  const closeCameraCapture = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowCameraCapture(false);
+  };
+
+  const removeMedia = (id: string) => {
+    setAttachedMedia(prev => {
+      const mediaToRemove = prev.find(m => m.id === id);
+      if (mediaToRemove) {
+        URL.revokeObjectURL(mediaToRemove.url);
+      }
+      return prev.filter(m => m.id !== id);
+    });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const handleSubmitReport = () => {
