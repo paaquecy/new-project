@@ -163,18 +163,15 @@ export class YOLOv8PlateDetector {
 
   private async detectVehicleRegions(imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<any[]> {
     if (!this.objectDetectionModel) {
-      console.log('⚠️ No object detection model, using full image');
-      return [{
-        boundingBox: { x: 0, y: 0, width: 640, height: 480 },
-        confidence: 0.5
-      }];
+      console.log('⚠️ No object detection model available, using intelligent image regions');
+      return this.getIntelligentImageRegions(imageElement);
     }
 
     try {
       console.log('🚗 Detecting vehicles in image...');
-      
+
       const predictions = await this.objectDetectionModel.detect(imageElement as any);
-      
+
       // Filter for vehicle-related objects
       const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle', 'bicycle'];
       const vehicleDetections = predictions
@@ -191,19 +188,59 @@ export class YOLOv8PlateDetector {
         }));
 
       console.log(`🎯 Found ${vehicleDetections.length} vehicle(s):`, vehicleDetections.map(v => v.class));
-      
-      return vehicleDetections.length > 0 ? vehicleDetections : [{
-        boundingBox: { x: 0, y: 0, width: 640, height: 480 },
-        confidence: 0.3
-      }];
+
+      return vehicleDetections.length > 0 ? vehicleDetections : this.getIntelligentImageRegions(imageElement);
 
     } catch (error) {
       console.error('❌ Vehicle detection failed:', error);
-      return [{
-        boundingBox: { x: 0, y: 0, width: 640, height: 480 },
-        confidence: 0.3
-      }];
+      return this.getIntelligentImageRegions(imageElement);
     }
+  }
+
+  private getIntelligentImageRegions(imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): any[] {
+    // Get actual dimensions from the image element
+    let width = 640, height = 480;
+
+    if (imageElement instanceof HTMLVideoElement) {
+      width = imageElement.videoWidth || 640;
+      height = imageElement.videoHeight || 480;
+    } else if (imageElement instanceof HTMLCanvasElement) {
+      width = imageElement.width;
+      height = imageElement.height;
+    } else if (imageElement instanceof HTMLImageElement) {
+      width = imageElement.naturalWidth || imageElement.width || 640;
+      height = imageElement.naturalHeight || imageElement.height || 480;
+    }
+
+    // Create multiple regions to search for license plates
+    // Focus on typical license plate locations (front and rear of vehicles)
+    return [
+      // Full image as primary region
+      {
+        boundingBox: { x: 0, y: 0, width, height },
+        confidence: 0.5
+      },
+      // Lower center region (typical front plate location)
+      {
+        boundingBox: {
+          x: Math.round(width * 0.2),
+          y: Math.round(height * 0.6),
+          width: Math.round(width * 0.6),
+          height: Math.round(height * 0.3)
+        },
+        confidence: 0.6
+      },
+      // Upper center region (possible rear plate location)
+      {
+        boundingBox: {
+          x: Math.round(width * 0.25),
+          y: Math.round(height * 0.1),
+          width: Math.round(width * 0.5),
+          height: Math.round(height * 0.4)
+        },
+        confidence: 0.4
+      }
+    ];
   }
 
   private async findLicensePlateRegions(
