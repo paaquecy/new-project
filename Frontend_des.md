@@ -564,48 +564,157 @@ This project contains four distinct frontend applications, each designed for spe
 
 ---
 
-## Cross-Frontend Architecture
+## Cross-Frontend Architecture & Integration
 
-### **Common Design Patterns**
-1. **Consistent UI Framework**: All applications use Tailwind CSS with Inter font
-2. **Responsive Design**: Mobile-first approach with collapsible sidebars
-3. **Authentication Strategy**: Mixed approach (custom session management + Supabase)
-4. **Component Architecture**: Modular, reusable components across applications
-5. **Performance Optimization**: Lazy loading for heavy dependencies
+### **Application Integration Flow**
+The system follows a hub-and-spoke architecture where the Main Administrative Frontend serves as the central orchestration point:
 
-### **Integration Strategy**
-- **Main Application**: Acts as orchestration hub mounting specialized apps
-- **Shared Resources**: Common utilities, API clients, and styling
-- **Data Flow**: Unified backend API with role-based access control
-- **Session Management**: Coordinated authentication across all applications
+#### **Authentication & Routing Flow**
+1. **Entry Point**: All users start at `src/components/LoginPage.tsx`
+2. **Role-Based Routing**: LoginPage determines user role and routes to appropriate frontend:
+   - **Admin**: Remains in main application with full system access
+   - **DVLA Officer**: Redirected to DVLA frontend via component mounting
+   - **Police Officer**: Redirected to Police frontend with Supabase authentication
+   - **Supervisor**: Redirected to Supervisor frontend with route-based navigation
+3. **Session Management**: Mixed authentication strategy:
+   - Main app uses custom AuthContext with sessionManager utilities
+   - Police/Supervisor use Supabase authentication
+   - DVLA inherits authentication from main app mounting
 
-### **Technology Stack**
-- **Frontend Framework**: React 18 with TypeScript
-- **Styling**: Tailwind CSS with PostCSS
-- **Build Tool**: Vite for development and production builds
-- **Authentication**: Custom session management + Supabase Auth
-- **State Management**: React Context API
-- **Icons**: Lucide React icon library
-- **Charts/Analytics**: Recharts for data visualization
+#### **Data Flow & Lifecycle**
+The complete violation lifecycle demonstrates cross-frontend integration:
 
-### **Development Structure**
-- **Monorepo Approach**: Multiple frontend applications in single repository
-- **Shared Dependencies**: Common packages defined in root package.json
-- **Independent Deployment**: Each frontend can be deployed separately
-- **Unified Backend**: Single backend API serving all frontend applications
+1. **Detection Phase (Police)**:
+   - Officer uses VehicleScanner to detect plates via OpenCV
+   - VehicleInformationAccess queries unified API for vehicle data
+   - ViolationFlagging creates violation record with evidence
 
----
+2. **Review Phase (Supervisor)**:
+   - PendingViolations page shows police submissions
+   - ViolationDetailsModal provides detailed evidence review
+   - Supervisor Accept/Reject decisions update unified database
 
-## Deployment and Environment
+3. **Processing Phase (DVLA)**:
+   - Accepted violations trigger fine records in DVLA system
+   - ClearFines component handles payment processing
+   - VehicleRecords updated with violation history
 
-### **Development Server**
-- **Command**: `npm run dev` (Vite development server)
-- **Port**: 5173 (default Vite configuration)
-- **Hot Reload**: Enabled for all frontend applications
+4. **Administration Phase (Main)**:
+   - ViolationTable provides system-wide violation overview
+   - AnalyticsReporting generates cross-system insights
+   - AuditLogViewer tracks all system activities
 
-### **Build Configuration**
-- **Output**: Static files for deployment
-- **Optimization**: Code splitting and lazy loading
-- **Environment**: Production builds with minification
+### **Shared Technical Infrastructure**
 
-This multi-frontend architecture provides a comprehensive solution for vehicle management and enforcement, with each application optimized for its specific user role and use cases.
+#### **API Integration**
+- **Unified API Client**: `src/lib/unified-api.ts` provides consistent backend interface
+- **Supabase Integration**: `src/lib/supabase.ts` for real-time updates and authentication
+- **Individual API Clients**: Each frontend maintains specialized API functions
+- **Fallback Mechanisms**: Mock data and offline capabilities for development
+
+#### **State Management Patterns**
+- **Main App**: AuthContext + DataContext with session persistence
+- **DVLA**: ThemeContext for dark mode + inherited auth from main app
+- **Police**: Simple useAuth hook with Supabase + component-level state
+- **Supervisor**: AuthContext with Supabase + React Router state management
+
+#### **Component Architecture Patterns**
+- **Sidebar Navigation**: Consistent pattern across all applications
+  - `src/components/Sidebar.tsx` (Main)
+  - `DVLA/src/components/Sidebar.tsx` (DVLA)
+  - `police/src/components/Sidebar.tsx` (Police)
+  - Integrated in `Supervisor/src/components/Layout.tsx` (Supervisor)
+
+- **Dashboard Composition**: Modular card-based dashboards
+  - Main: `Dashboard.tsx` with KPI cards and activity feeds
+  - DVLA: `OverviewDashboard.tsx` composing StatCard, ActivityCard, etc.
+  - Police: `OverviewDashboard.tsx` with officer-specific metrics
+  - Supervisor: `Dashboard.tsx` with Recharts analytics
+
+- **Modal Systems**: Consistent modal patterns for detailed views
+  - Main: `UserProfileModal.tsx`, `NotificationsModal.tsx`
+  - Supervisor: `ViolationDetailsModal.tsx`
+  - Universal: Tailwind-based modal styling and behavior
+
+### **Performance & Optimization Strategy**
+
+#### **Lazy Loading Implementation**
+- **Police Scanner**: `VehicleScanner.tsx` lazy-loaded to avoid OpenCV bundle impact
+- **Heavy Dependencies**: Strategic code splitting for camera and ML libraries
+- **Route-Based Splitting**: Supervisor uses React Router for page-level splitting
+
+#### **Error Handling & Recovery**
+- **Police App**: Global error boundary with page refresh capability for field reliability
+- **Offline Support**: Mock data and fallback scenarios across all applications
+- **Camera Management**: Robust error handling for permission and hardware issues
+
+#### **Mobile Optimization**
+- **Responsive Design**: All applications support mobile with collapsible sidebars
+- **Touch-Friendly**: Police frontend optimized for field use with large touch targets
+- **Camera Integration**: Mobile-optimized camera constraints and permissions
+
+### **Technology Stack Breakdown**
+
+#### **Core Technologies**
+- **Frontend Framework**: React 18.3.1 with TypeScript 5.5.3
+- **Build Tool**: Vite 5.4.2 for development and production builds
+- **Styling**: Tailwind CSS 3.4.1 with PostCSS and Autoprefixer
+- **Icons**: Lucide React 0.344.0 for consistent iconography
+
+#### **Specialized Libraries**
+- **Computer Vision**:
+  - OpenCV.js 1.2.1 (Police)
+  - @tensorflow/tfjs 4.22.0 (Root)
+  - @tensorflow-models/coco-ssd 2.2.3 (Root)
+  - Tesseract.js 6.0.1 (Root)
+  - ONNX Runtime Web 1.22.0 (Root)
+
+- **Data Visualization**: Recharts 3.1.0 (Supervisor, Root)
+- **Authentication**: @supabase/supabase-js 2.54.0 (Police, Root)
+- **Routing**: react-router-dom 7.7.1 (Supervisor, Root)
+
+#### **Development Tools**
+- **Linting**: ESLint 9.9.1 with React hooks and refresh plugins
+- **TypeScript**: Strict configuration with app and node-specific configs
+- **Package Management**: npm with monorepo structure
+
+### **Development Structure & Deployment**
+
+#### **Monorepo Architecture**
+```
+root/
+├── src/ (Main Administrative Frontend)
+├── DVLA/src/ (DVLA Frontend)
+├── police/src/ (Police Frontend)
+├── Supervisor/src/ (Supervisor Frontend)
+├── backend/ (Unified Backend Services)
+└── package.json (Shared Dependencies)
+```
+
+#### **Deployment Strategy**
+- **Development**: Single Vite server on port 5173 serving all applications
+- **Production**: Each frontend can be deployed independently
+- **CDN Integration**: Static asset optimization and caching
+- **Environment Management**: Environment-specific configurations and API endpoints
+
+#### **Backend Integration**
+- **Unified Database**: Single backend serving all frontends with role-based access
+- **Supabase Functions**: Serverless functions for real-time operations
+- **API Gateway**: Centralized API routing and authentication
+- **Database Schema**: Shared schema supporting all application domains
+
+### **Security & Compliance**
+
+#### **Authentication Security**
+- **Multi-Factor Authentication**: Support across all applications
+- **Session Management**: Secure session handling with timeout and validation
+- **Role-Based Access Control**: Granular permissions per frontend
+- **API Security**: JWT tokens and role validation
+
+#### **Data Protection**
+- **Evidence Handling**: Secure storage and transmission of violation evidence
+- **PII Protection**: Personal information encryption and access controls
+- **Audit Logging**: Comprehensive activity tracking across all applications
+- **Compliance**: GDPR and law enforcement data handling requirements
+
+This comprehensive multi-frontend architecture provides a scalable, maintainable solution for vehicle management and enforcement, with each application optimized for its specific user role while maintaining system-wide consistency and integration.
