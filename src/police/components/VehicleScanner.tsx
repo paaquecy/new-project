@@ -115,7 +115,7 @@ const VehicleScanner = () => {
         console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
         await yoloV8PlateDetector.initialize();
         console.log('✅ YOLOv8 + Enhanced OCR initialized successfully');
-        setDetectorType('gemini');
+        setDetectorType('yolo');
         setUsingCustomModel(false);
         setUsingSimpleDetector(false);
         return;
