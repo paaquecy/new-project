@@ -37,11 +37,59 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
   const [activeNav, setActiveNav] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every minute to ensure greeting changes appropriately
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Update greeting immediately when navigating to overview
+  useEffect(() => {
+    if (activeNav === 'overview') {
+      setCurrentTime(new Date());
+    }
+  }, [activeNav]);
+
+  const getTimeBasedGreeting = () => {
+    const currentHour = currentTime.getHours();
+    const currentMinutes = currentTime.getMinutes();
+    const timeString = currentTime.toLocaleTimeString();
+
+    let greeting;
+
+    // Time-based greetings based on 24-hour format:
+    // Morning: 5:00 AM - 11:59 AM
+    // Afternoon: 12:00 PM - 4:59 PM
+    // Evening: 5:00 PM - 9:59 PM
+    // Night: 10:00 PM - 4:59 AM
+    if (currentHour >= 5 && currentHour < 12) {
+      greeting = 'Good Morning, Officer!';
+    } else if (currentHour >= 12 && currentHour < 17) {
+      greeting = 'Good Afternoon, Officer!';
+    } else if (currentHour >= 17 && currentHour < 22) {
+      greeting = 'Good Evening, Officer!';
+    } else {
+      // Late night/early morning (10 PM - 5 AM)
+      greeting = 'Good Night, Officer!';
+    }
+
+    // Log greeting changes for testing (can be removed in production)
+    if (activeNav === 'overview') {
+      console.log(`🕐 Current time: ${timeString} | Greeting: ${greeting}`);
+    }
+
+    return greeting;
+  };
 
   const getPageTitle = () => {
     switch (activeNav) {
       case 'overview':
-        return 'Good Morning, Officer!';
+        return getTimeBasedGreeting();
       case 'scanner':
         return 'Vehicle Plate Scanner';
       case 'flagging':

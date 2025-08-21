@@ -15,7 +15,8 @@ import { useCamera } from '../hooks/useCamera';
 import { yoloPlateDetector, PlateDetectionResult } from '../utils/yoloPlateDetection';
 import { simplePlateDetector } from '../utils/simplePlateDetection';
 import { customYOLODetector } from '../utils/customModelDetection';
-import { geminiPlateDetector } from '../utils/geminiPlateDetection';
+import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
+import { DetectionDiagnostics } from '../utils/detectionDiagnostics';
 import { useData } from '../../contexts/DataContext';
 import DetectionMetrics from './DetectionMetrics';
 
@@ -36,12 +37,13 @@ const VehicleScanner = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [usingSimpleDetector, setUsingSimpleDetector] = useState(false);
   const [usingCustomModel, setUsingCustomModel] = useState(false);
-  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
+  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('yolo');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [captureFlash, setCaptureFlash] = useState(false);
   const [plateDetectedFromImage, setPlateDetectedFromImage] = useState(false);
+  const [detectorStatus, setDetectorStatus] = useState<{initialized: boolean, hasObjectDetection: boolean, hasOCR: boolean, models: string[]} | null>(null);
   const autoStartRef = useRef(false);
 
   const {
@@ -112,10 +114,24 @@ const VehicleScanner = () => {
     const initializeDetector = async () => {
       // Try Gemini Vision API first
       try {
-        console.log('Starting Gemini Vision API initialization...');
-        await geminiPlateDetector.initialize();
-        console.log('Gemini Vision API initialized successfully');
-        setDetectorType('gemini');
+        console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
+
+        // Run diagnostics
+        const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
+        DetectionDiagnostics.logDiagnostics(diagnostics);
+
+        await yoloV8PlateDetector.initialize();
+        const status = yoloV8PlateDetector.getStatus();
+        setDetectorStatus(status);
+        console.log('✅ YOLOv8 + Enhanced OCR initialized:', status);
+
+        if (!status.hasObjectDetection) {
+          console.warn('⚠️ Object detection model not available - using fallback detection methods');
+        }
+        if (!status.hasOCR) {
+          console.warn('⚠️ OCR worker not available - using basic image analysis');
+        }
+        setDetectorType('yolo');
         setUsingCustomModel(false);
         setUsingSimpleDetector(false);
         return;
@@ -167,13 +183,11 @@ const VehicleScanner = () => {
       // Cleanup based on which detector is active
       switch (detectorType) {
         case 'gemini':
-          geminiPlateDetector.cleanup();
+        case 'yolo':
+          yoloV8PlateDetector.cleanup();
           break;
         case 'custom':
           customYOLODetector.cleanup();
-          break;
-        case 'yolo':
-          yoloPlateDetector.cleanup();
           break;
         case 'simple':
           simplePlateDetector.cleanup();
@@ -237,23 +251,21 @@ const VehicleScanner = () => {
 
     try {
       console.log('🎯 Running plate detection attempt #', detectionAttempts + 1, 'with',
-        detectorType === 'gemini' ? 'Gemini Vision API' :
+        detectorType === 'gemini' ? 'YOLOv8+OCR (former Gemini)' :
         detectorType === 'custom' ? 'custom trained model' :
-        detectorType === 'yolo' ? 'standard YOLOv8 + EasyOCR' : 'simple detector');
+        detectorType === 'yolo' ? 'YOLOv8+OCR detector' : 'simple detector');
 
       let result;
       const detectionPromise = (async () => {
         switch (detectorType) {
           case 'gemini':
-            return await geminiPlateDetector.detectPlate(videoRef.current);
+          case 'yolo':
+          default:
+            return await yoloV8PlateDetector.detectPlate(videoRef.current);
           case 'custom':
             return await customYOLODetector.detectPlate(videoRef.current);
-          case 'yolo':
-            return await yoloPlateDetector.detectPlate(videoRef.current);
           case 'simple':
             return await simplePlateDetector.detectPlate(videoRef.current);
-          default:
-            return await geminiPlateDetector.detectPlate(videoRef.current);
         }
       })();
 
@@ -261,12 +273,12 @@ const VehicleScanner = () => {
       result = await Promise.race([detectionPromise, detectionTimeout]);
 
       // Adjust confidence thresholds based on detector type
-      const minConfidence = detectorType === 'gemini' ? 0.7 :
+      const minConfidence = detectorType === 'gemini' ? 0.5 :
                            detectorType === 'custom' ? 0.4 :
-                           detectorType === 'yolo' ? 0.3 : 0.35;
-      const minOcrConfidence = detectorType === 'gemini' ? 0.8 :
+                           detectorType === 'yolo' ? 0.5 : 0.35;
+      const minOcrConfidence = detectorType === 'gemini' ? 0.6 :
                               detectorType === 'custom' ? 0.5 :
-                              detectorType === 'yolo' ? 0.4 : 0.45;
+                              detectorType === 'yolo' ? 0.6 : 0.45;
 
       console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
 
@@ -354,9 +366,9 @@ const VehicleScanner = () => {
     } catch (error) {
       console.error('Error during plate detection:', error);
 
-      // Implement fallback chain: gemini -> custom -> yolo -> simple
-      if (detectorType === 'gemini') {
-        console.log('Gemini detector failed, attempting fallback to custom model...');
+      // Implement fallback chain: yolo -> custom -> simple
+      if (detectorType === 'gemini' || detectorType === 'yolo') {
+        console.log('YOLOv8+OCR detector failed, attempting fallback to custom model...');
         try {
           await customYOLODetector.initialize();
           setDetectorType('custom');
@@ -570,22 +582,22 @@ const VehicleScanner = () => {
 
         switch (detectorType) {
           case 'gemini':
-            result = await geminiPlateDetector.detectPlate(frame);
+          case 'yolo':
+            console.log('🤖 Using YOLOv8+OCR for plate detection...');
+            result = await yoloV8PlateDetector.detectPlate(frame);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(frame);
-            break;
-          case 'yolo':
-            result = await yoloPlateDetector.detectPlate(frame);
             break;
           case 'simple':
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
-            result = await geminiPlateDetector.detectPlate(frame);
+            console.log('🤖 Using default YOLOv8+OCR for plate detection...');
+            result = await yoloV8PlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
-        console.warn('❌ Canvas detection failed, trying Image element approach:', canvasError);
+        console.warn('❌ Detection failed, trying Image element approach:', canvasError);
 
         // Fallback: Create an image element from the captured image data URL
         console.log('🖼️ Fallback: Creating image from captured data URL...');
@@ -608,19 +620,17 @@ const VehicleScanner = () => {
         // Try detection on the image element
         switch (detectorType) {
           case 'gemini':
-            result = await geminiPlateDetector.detectPlate(img);
+          case 'yolo':
+            result = await yoloV8PlateDetector.detectPlate(img);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(img);
-            break;
-          case 'yolo':
-            result = await yoloPlateDetector.detectPlate(img);
             break;
           case 'simple':
             result = await simplePlateDetector.detectPlate(img);
             break;
           default:
-            result = await geminiPlateDetector.detectPlate(img);
+            result = await yoloV8PlateDetector.detectPlate(img);
         }
       }
 
@@ -734,13 +744,13 @@ const VehicleScanner = () => {
         <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-blue-600" />
           Live Camera Feed with {
-            detectorType === 'gemini' ? 'Gemini Vision AI' :
+            detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
             detectorType === 'custom' ? 'Custom Trained YOLO' :
-            detectorType === 'yolo' ? 'Standard YOLOv8 + EasyOCR' : 'Simple'
+            detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'
           } Plate Detection
-          {detectorType === 'gemini' && (
+          {(detectorType === 'gemini' || detectorType === 'yolo') && (
             <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-              Gemini AI
+              YOLOv8+OCR
             </span>
           )}
           {detectorType === 'custom' && (
@@ -854,9 +864,9 @@ const VehicleScanner = () => {
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'gemini' ? 'Gemini AI Active' :
-                         detectorType === 'custom' ? 'AI Detection Active' :
-                         detectorType === 'yolo' ? 'YOLO Detection Active' : 'Detection Active'}
+                    🔍 {detectorType === 'gemini' ? 'YOLOv8+OCR Active' :
+                         detectorType === 'custom' ? 'Custom AI Active' :
+                         detectorType === 'yolo' ? 'YOLOv8+OCR Active' : 'Detection Active'}
                   </div>
                 )}
 
@@ -937,9 +947,9 @@ const VehicleScanner = () => {
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'gemini' ? 'Gemini AI' :
+                {detectorType === 'gemini' ? 'YOLOv8+OCR' :
                  detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLO+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
+                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
             <span className="text-gray-400">
@@ -1066,9 +1076,9 @@ const VehicleScanner = () => {
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'gemini' ? 'Gemini Vision AI' :
+                {detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
                  detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8 + EasyOCR' : 'Simple Detection'}
+                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple Detection'}
               </span>
             )}
           </h3>
@@ -1132,8 +1142,42 @@ const VehicleScanner = () => {
                   )}
                 </>
               )}
+
+              {/* Detector Status */}
+              {detectorStatus && (detectorType === 'yolo' || detectorType === 'gemini') && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Detection System Status</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span>Object Detection:</span>
+                      <span className={`px-2 py-1 rounded ${detectorStatus.hasObjectDetection ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {detectorStatus.hasObjectDetection ? 'COCO-SSD Active' : 'Fallback Mode'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>OCR Engine:</span>
+                      <span className={`px-2 py-1 rounded ${detectorStatus.hasOCR ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {detectorStatus.hasOCR ? 'Tesseract.js' : 'Basic Analysis'}
+                      </span>
+                    </div>
+                    {(!detectorStatus.hasObjectDetection || !detectorStatus.hasOCR) && (
+                      <button
+                        onClick={async () => {
+                          const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
+                          DetectionDiagnostics.logDiagnostics(diagnostics);
+                          const networkTest = await DetectionDiagnostics.runNetworkTest();
+                          console.log('🌐 Network test:', networkTest);
+                        }}
+                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                      >
+                        Run Diagnostics
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            
+
             <button
               onClick={handleDocumentEvidence}
               disabled={scanResults.plateNumber === 'N/A'}
