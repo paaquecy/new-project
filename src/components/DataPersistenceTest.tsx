@@ -1,37 +1,15 @@
 import React from 'react';
 import { useData } from '../contexts/DataContext';
-import { Save, Download, RotateCcw, Database } from 'lucide-react';
+import { Database } from 'lucide-react';
 
 const DataPersistenceTest: React.FC = () => {
-  const { 
-    users, 
-    violations, 
-    vehicles, 
-    fines, 
-    notifications,
-    exportAllData,
-    clearAllData,
-    refreshData,
-    addNotification 
+  const {
+    users,
+    violations,
+    vehicles,
+    fines,
+    notifications
   } = useData();
-
-  const handleTestDataPersistence = () => {
-    // Test creating a notification
-    addNotification({
-      title: 'Data Persistence Test',
-      message: `Test performed at ${new Date().toLocaleString()}`,
-      type: 'info',
-      timestamp: new Date().toISOString(),
-      read: false,
-      system: 'Main App'
-    });
-    
-    alert('Test notification added! Check if it persists after refresh.');
-  };
-
-  const handleRefreshPage = () => {
-    window.location.reload();
-  };
 
   const dataStats = {
     users: users.length,
