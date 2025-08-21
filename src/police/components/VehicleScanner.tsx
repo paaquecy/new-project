@@ -242,15 +242,13 @@ const VehicleScanner = () => {
       const detectionPromise = (async () => {
         switch (detectorType) {
           case 'gemini':
-            return await geminiPlateDetector.detectPlate(videoRef.current);
+          case 'yolo':
+          default:
+            return await yoloPlateDetector.detectPlate(videoRef.current);
           case 'custom':
             return await customYOLODetector.detectPlate(videoRef.current);
-          case 'yolo':
-            return await yoloPlateDetector.detectPlate(videoRef.current);
           case 'simple':
             return await simplePlateDetector.detectPlate(videoRef.current);
-          default:
-            return await geminiPlateDetector.detectPlate(videoRef.current);
         }
       })();
 
