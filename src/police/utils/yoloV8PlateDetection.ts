@@ -122,41 +122,60 @@ export class YOLOv8PlateDetector {
 
       // Step 1: Use object detection to find vehicle-related objects
       const vehicleRegions = await this.detectVehicleRegions(imageElement);
-      
+
       // Step 2: Find rectangular regions that could be license plates
       const plateRegions = await this.findLicensePlateRegions(imageElement, vehicleRegions);
-      
+
       if (plateRegions.length === 0) {
         console.log('❌ No potential license plate regions found');
         return null;
       }
 
+      console.log(`🔍 Found ${plateRegions.length} potential plate regions to analyze`);
+
       // Step 3: Process each potential plate region with OCR
-      for (const region of plateRegions) {
-        console.log('🔤 Processing potential plate region:', region);
-        
-        const plateCanvas = this.extractRegion(imageElement, region);
-        const enhancedCanvas = this.enhanceForOCR(plateCanvas);
-        
-        const ocrResult = await this.performAdvancedOCR(enhancedCanvas);
-        
-        if (ocrResult && this.isValidLicensePlate(ocrResult.text)) {
-          console.log('✅ Valid license plate detected:', ocrResult.text);
-          
-          return {
-            plateNumber: this.formatLicensePlate(ocrResult.text),
-            confidence: region.confidence,
-            boundingBox: region.boundingBox,
-            ocrConfidence: ocrResult.confidence
-          };
+      for (const [index, region] of plateRegions.entries()) {
+        try {
+          console.log(`🔤 Processing plate region ${index + 1}/${plateRegions.length}:`, region);
+
+          const plateCanvas = this.extractRegion(imageElement, region);
+          const enhancedCanvas = this.enhanceForOCR(plateCanvas);
+
+          const ocrResult = await this.performAdvancedOCR(enhancedCanvas);
+
+          if (ocrResult && this.isValidLicensePlate(ocrResult.text)) {
+            console.log('✅ Valid license plate detected:', ocrResult.text);
+
+            return {
+              plateNumber: this.formatLicensePlate(ocrResult.text),
+              confidence: region.confidence,
+              boundingBox: region.boundingBox,
+              ocrConfidence: ocrResult.confidence
+            };
+          } else if (ocrResult) {
+            console.log(`❌ Invalid plate format: "${ocrResult.text}" (confidence: ${ocrResult.confidence})`);
+          }
+        } catch (regionError) {
+          console.warn(`⚠️ Error processing region ${index + 1}:`, regionError);
+          continue; // Try next region
         }
       }
 
-      console.log('❌ No valid license plates found in detected regions');
+      console.log('❌ No valid license plates found in any detected regions');
       return null;
 
     } catch (error) {
       console.error('❌ Error in plate detection:', error);
+
+      // Provide helpful debug information
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          console.error('📡 Network error detected. Check internet connection and firewall settings.');
+        } else if (error.message.includes('FullStory') || error.message.includes('fs.js')) {
+          console.error('🔒 Third-party script interference detected. Consider disabling analytics scripts for better performance.');
+        }
+      }
+
       return null;
     }
   }
