@@ -934,9 +934,9 @@ const VehicleScanner = () => {
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'gemini' ? 'Gemini AI' :
+                {detectorType === 'gemini' ? 'YOLOv8+OCR' :
                  detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLO+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
+                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
             <span className="text-gray-400">
