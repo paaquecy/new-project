@@ -248,7 +248,7 @@ const VehicleScanner = () => {
           case 'gemini':
           case 'yolo':
           default:
-            return await yoloPlateDetector.detectPlate(videoRef.current);
+            return await yoloV8PlateDetector.detectPlate(videoRef.current);
           case 'custom':
             return await customYOLODetector.detectPlate(videoRef.current);
           case 'simple':
@@ -267,7 +267,7 @@ const VehicleScanner = () => {
                               detectorType === 'custom' ? 0.5 :
                               detectorType === 'yolo' ? 0.4 : 0.45;
 
-      console.log('���� Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
+      console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
 
       console.log('🔍 Detection result:', {
         plateNumber: result?.plateNumber,
