@@ -605,20 +605,50 @@ export class YOLOv8PlateDetector {
     return cleaned;
   }
 
+  getStatus(): {
+    initialized: boolean;
+    hasObjectDetection: boolean;
+    hasOCR: boolean;
+    models: string[];
+  } {
+    return {
+      initialized: this.isInitialized,
+      hasObjectDetection: !!this.objectDetectionModel,
+      hasOCR: !!this.ocrWorker,
+      models: [
+        this.objectDetectionModel ? 'COCO-SSD' : 'None',
+        this.ocrWorker ? 'Tesseract.js' : 'Basic Analysis'
+      ]
+    };
+  }
+
   async cleanup(): Promise<void> {
     try {
+      console.log('🧹 Starting YOLOv8-style detector cleanup...');
+
       if (this.ocrWorker) {
-        await this.ocrWorker.terminate();
+        try {
+          await this.ocrWorker.terminate();
+          console.log('✅ OCR worker terminated');
+        } catch (error) {
+          console.warn('⚠️ Error terminating OCR worker:', error);
+        }
         this.ocrWorker = null;
       }
-      
+
       if (this.objectDetectionModel) {
-        this.objectDetectionModel.dispose();
+        try {
+          this.objectDetectionModel.dispose();
+          console.log('✅ Object detection model disposed');
+        } catch (error) {
+          console.warn('⚠️ Error disposing model:', error);
+        }
         this.objectDetectionModel = null;
       }
-      
+
       this.isInitialized = false;
-      console.log('✅ YOLOv8-style detector cleaned up');
+      this.isInitializing = false;
+      console.log('✅ YOLOv8-style detector cleaned up successfully');
     } catch (error) {
       console.error('❌ Error during cleanup:', error);
     }
