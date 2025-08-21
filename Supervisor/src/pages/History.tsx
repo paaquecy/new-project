@@ -96,11 +96,11 @@ const History: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === 'accepted') {
+    if (status === 'approved' || status === 'accepted') {
       return (
         <div className="flex items-center space-x-1 text-green-700 bg-green-100 px-2 py-1 rounded-full text-sm">
           <CheckCircle className="h-3 w-3" />
-          <span>Accepted</span>
+          <span>Approved</span>
         </div>
       );
     } else if (status === 'rejected') {
