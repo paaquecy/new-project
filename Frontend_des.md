@@ -414,29 +414,153 @@ This project contains four distinct frontend applications, each designed for spe
 ## 4. Supervisor Frontend
 
 ### **Purpose & Target Users**
-- **Primary Role**: Oversight and monitoring dashboard
-- **Target Users**: Supervisors, management oversight staff
+- **Primary Role**: Oversight and monitoring dashboard for violation review and system oversight
+- **Target Users**: Supervisors, management oversight staff, enforcement coordinators
 - **Location**: `Supervisor/src/` directory
 
-### **Core Functionality**
-- **Dashboard Overview**: High-level system monitoring and KPIs
-- **Pending Violations**: Queue management for violation processing
-- **Historical Data**: Access to historical violation and enforcement data
-- **Notifications**: System alerts and important updates
-- **Settings Management**: Supervisor-level configuration options
+### **Complete Page and Component Breakdown**
 
-### **Key Components**
-- `Supervisor/src/pages/Dashboard.tsx` - Main oversight dashboard
-- `Supervisor/src/pages/PendingViolations.tsx` - Violation queue management
-- `Supervisor/src/pages/History.tsx` - Historical data access
-- `Supervisor/src/pages/Notifications.tsx` - Alert and notification center
-- `Supervisor/src/components/Layout.tsx` - Main layout with integrated auth
+#### **Layout & Navigation Components**
+- **`Supervisor/src/components/Layout.tsx`**
+  - **Purpose**: Main application frame with integrated navigation and authentication
+  - **Features**:
+    - Sidebar with collapsible state and mobile menu support
+    - Navigation menu with route highlighting (/dashboard, /pending, /history, /notifications, /settings)
+    - User profile display with logout functionality
+    - React Router Outlet integration for page content
+    - Active route detection and highlighting
+  - **User Journey**: Provides consistent navigation framework for all supervisor functions
+  - **Technical Implementation**: Uses lucide-react icons, responsive design, react-router navigation
+
+- **`Supervisor/src/components/ProtectedRoute.tsx`**
+  - **Purpose**: Route wrapper ensuring authenticated access to supervisor functions
+  - **Features**: Authentication validation, redirect to login, role-based access control
+  - **User Journey**: Protects sensitive supervisor operations from unauthorized access
+  - **Technical Implementation**: Authentication guard with redirect logic
+
+#### **Authentication Components**
+- **`Supervisor/src/components/Login.tsx`**
+  - **Purpose**: Supervisor-specific login interface
+  - **Features**: Supervisor credential validation, session establishment, role verification
+  - **User Journey**: Supervisor authentication entry point
+  - **Technical Implementation**: Supabase authentication with supervisor role validation
+
+#### **Dashboard & Overview Pages**
+- **`Supervisor/src/pages/Dashboard.tsx`**
+  - **Purpose**: Main oversight dashboard with comprehensive KPIs and analytics
+  - **Features**:
+    - Daily violation statistics (total, accepted, rejected, pending)
+    - Weekly performance bar charts using Recharts
+    - Violation type distribution pie charts
+    - Quick action buttons (Review Pending, View Accepted, Generate Report)
+    - Performance trends and officer activity metrics
+  - **User Journey**: Primary landing page for supervisors to assess system performance and workload
+  - **Technical Implementation**: Recharts for data visualization, mock data integration, responsive card layout
+
+#### **Violation Management Pages**
+- **`Supervisor/src/pages/PendingViolations.tsx`**
+  - **Purpose**: Queue management for violations requiring supervisor review
+  - **Features**:
+    - Violation table with Accept/Reject actions
+    - Integration with ViolationDetailsModal for evidence review
+    - Batch processing capabilities
+    - Priority queue management
+    - Officer submission tracking
+  - **User Journey**: Supervisor reviews police officer submissions and makes approval decisions
+  - **Technical Implementation**: Table-based interface with modal integration for detailed review
+
+- **`Supervisor/src/components/ViolationDetailsModal.tsx`**
+  - **Purpose**: Detailed violation inspection modal for decision-making
+  - **Features**:
+    - Evidence image/video display
+    - Plate recognition details and confidence scores
+    - Officer notes and submission timestamps
+    - Location and contextual information
+    - Accept/Reject decision interface with reason codes
+  - **User Journey**: Supervisor reviews complete violation details before making decisions
+  - **Technical Implementation**: Modal component with evidence display and action controls
+
+#### **Historical Data & Reporting Pages**
+- **`Supervisor/src/pages/History.tsx`**
+  - **Purpose**: Historical violation and decision tracking system
+  - **Features**:
+    - Past violation records with decision outcomes
+    - Search and filtering capabilities (date range, officer, violation type, decision)
+    - Export functionality for reporting
+    - Audit trail with decision reasoning
+    - Performance analytics and trends
+  - **User Journey**: Supervisor reviews historical decisions and generates compliance reports
+  - **Technical Implementation**: Data table with advanced filtering and export capabilities
+
+#### **Communication & Alerts Pages**
+- **`Supervisor/src/pages/Notifications.tsx`**
+  - **Purpose**: Notification center for system alerts and communications
+  - **Features**:
+    - New violation submissions alerts
+    - System status notifications
+    - Officer communication messages
+    - Deadline and escalation warnings
+    - Read/unread status tracking
+  - **User Journey**: Supervisor stays informed of system events and required actions
+  - **Technical Implementation**: Notification list with categorization and status management
+
+#### **Configuration & Settings Pages**
+- **`Supervisor/src/pages/Settings.tsx`**
+  - **Purpose**: Supervisor-level application configuration and preferences
+  - **Features**:
+    - Notification preferences and alert thresholds
+    - Report generation scheduling
+    - User account management
+    - System parameter configuration
+    - Dashboard customization options
+  - **User Journey**: Supervisor configures application for optimal oversight workflow
+  - **Technical Implementation**: Settings forms with validation and persistence
+
+### **Data & Type Definitions**
+- **`Supervisor/src/data/mockData.ts`**
+  - **Purpose**: Mock data for development and demonstration
+  - **Features**: Sample violation records, statistics, and user data for testing
+
+- **`Supervisor/src/types/index.ts`**
+  - **Purpose**: TypeScript type definitions for supervisor domain objects
+  - **Features**: Violation types, user interfaces, dashboard metrics, API responses
+
+### **API Integration**
+- **`Supervisor/src/lib/api.ts`**
+  - **Purpose**: Supervisor-specific API client functions
+  - **Features**: Violation management, user queries, reporting endpoints
+
+- **`Supervisor/src/lib/unified-api.ts`**
+  - **Purpose**: Integration with unified backend API
+  - **Features**: Cross-system data access, violation lifecycle management
+
+### **Supervisor Workflow & User Journey**
+1. **Authentication**: Supervisor logs in via supervisor-specific login interface
+2. **Dashboard Overview**: Lands on Dashboard page showing daily/weekly KPIs and pending work
+3. **Violation Review Process**:
+   - Navigate to PendingViolations page to see queue of submissions
+   - Click on violations to open ViolationDetailsModal for detailed review
+   - Review evidence, plate detection confidence, officer notes
+   - Make Accept/Reject decisions with reason codes
+4. **Historical Analysis**: Use History page to review past decisions and trends
+5. **Communication**: Monitor Notifications for system alerts and officer communications
+6. **Configuration**: Adjust Settings for notification preferences and reporting schedules
+
+### **Technical Integration Points**
+- **Data Flow**: Receives violation submissions from Police frontend via Supabase functions
+- **Decision Impact**: Supervisor decisions update violation status in unified database
+- **DVLA Integration**: Accepted violations may trigger fine records in DVLA system
+- **Reporting**: Generates reports consumed by main administrative frontend
 
 ### **Architecture Patterns**
-- **Routing**: React Router with nested route structure
-- **Authentication**: Supabase integration with AuthContext
-- **Navigation**: Route-aware sidebar with active state highlighting
+- **Routing**: React Router with nested route structure and protected routes
+- **Authentication**: Supabase integration with AuthContext and role-based access
+- **Navigation**: Route-aware sidebar with active state highlighting via react-router
 - **Layout**: Consistent sidebar + outlet pattern for all pages
+- **Data Visualization**: Recharts integration for dashboard analytics and trend analysis
+- **Modal Management**: Centralized modal system for detailed violation review
+- **State Management**: React Context for authentication and navigation state
+- **API Integration**: Unified API client with Supabase backend for real-time updates
 
 ---
 
