@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, CheckCircle, XCircle, Calendar, User } from 'lucide-react';
-import { mockViolations, acceptViolation, rejectViolation } from '../data/mockData';
 import ViolationDetailsModal from '../components/ViolationDetailsModal';
 import { Violation } from '../types';
+import { unifiedAPI } from '../lib/unified-api';
 
 const PendingViolations: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,58 +10,38 @@ const PendingViolations: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [violations] = useState([
-    {
-      id: '1',
-      plateNumber: 'GR 1234 - 23',
-      offense: 'Speeding',
-      location: 'Ring Road Central, Accra',
-      date: '2024-01-15',
-      officer: 'Officer Kwame',
-      status: 'pending',
-      fine: 200
-    },
-    {
-      id: '2',
-      plateNumber: 'AS 5678 - 23',
-      offense: 'Parking Violation',
-      location: 'Kumasi High Street, Kumasi',
-      date: '2024-01-14',
-      officer: 'Officer Ama',
-      status: 'pending',
-      fine: 100
-    },
-    {
-      id: '3',
-      plateNumber: 'WR 9876 - 23',
-      offense: 'Red Light Violation',
-      location: 'Takoradi High Street, Takoradi',
-      date: '2024-01-13',
-      officer: 'Officer Kofi',
-      status: 'pending',
-      fine: 75
-    },
-    {
-      id: '4',
-      plateNumber: 'ER 3456 - 23',
-      offense: 'Overloading',
-      location: 'Koforidua Central, Koforidua',
-      date: '2024-01-12',
-      officer: 'Officer Yaw',
-      status: 'pending',
-      fine: 150
-    },
-    {
-      id: '5',
-      plateNumber: 'CR 7890 - 23',
-      offense: 'No Insurance',
-      location: 'Cape Coast Road, Cape Coast',
-      date: '2024-01-11',
-      officer: 'Officer Abena',
-      status: 'pending',
-      fine: 300
-    }
-  ]);
+  const [violations, setViolations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch violations on component mount
+  useEffect(() => {
+    const fetchViolations = async () => {
+      try {
+        const response = await unifiedAPI.getViolations(undefined, 'pending');
+        if (response.data) {
+          // Transform API violations to match component expectations
+          const transformedViolations = response.data.map(v => ({
+            id: v.id,
+            plateNumber: v.plate_number,
+            offense: v.violation_type,
+            location: v.location || 'Location not specified',
+            date: v.created_at ? new Date(v.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+            officer: `Officer ${v.officer_id || 'Unknown'}`,
+            status: v.status,
+            fine: v.fine_amount || 100,
+            description: v.violation_details
+          }));
+          setViolations(transformedViolations);
+        }
+      } catch (error) {
+        console.error('Failed to fetch violations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchViolations();
+  }, []);
 
   const pendingViolations = violations.filter(v => v.status === 'pending');
   const officers = Array.from(new Set(violations.map(v => v.officer)));
@@ -80,23 +60,35 @@ const PendingViolations: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleAccept = (violationId: string) => {
-    const success = acceptViolation(violationId);
-    if (success) {
-      setViolations([...mockViolations]); // Trigger re-render
+  const handleAccept = async (violationId: string) => {
+    try {
+      const response = await unifiedAPI.approveViolation(violationId);
+      if (response.error) {
+        alert('Failed to accept violation: ' + response.error);
+        return;
+      }
+
+      // Update local state
+      setViolations(prev => prev.filter(v => v.id !== violationId));
       alert('Violation accepted successfully!');
-    } else {
+    } catch (error) {
       alert('Failed to accept violation. Please try again.');
     }
   };
 
-  const handleReject = (violationId: string) => {
+  const handleReject = async (violationId: string) => {
     const reason = prompt('Please provide a reason for rejection (optional):');
-    const success = rejectViolation(violationId, reason || undefined);
-    if (success) {
-      setViolations([...mockViolations]); // Trigger re-render
+    try {
+      const response = await unifiedAPI.rejectViolation(violationId, reason || 'No reason provided');
+      if (response.error) {
+        alert('Failed to reject violation: ' + response.error);
+        return;
+      }
+
+      // Update local state
+      setViolations(prev => prev.filter(v => v.id !== violationId));
       alert('Violation rejected successfully!');
-    } else {
+    } catch (error) {
       alert('Failed to reject violation. Please try again.');
     }
   };
