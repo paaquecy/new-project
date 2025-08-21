@@ -266,7 +266,14 @@ const History: React.FC = () => {
           </table>
         </div>
 
-        {filteredViolations.length === 0 && (
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Loading violation history...</h3>
+          </div>
+        )}
+
+        {!loading && filteredViolations.length === 0 && (
           <div className="text-center py-12">
             <Filter className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No history found</h3>
