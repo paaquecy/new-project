@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 
 const FieldReporting = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [formData, setFormData] = useState({
     reportTitle: '',
     reportType: '',
@@ -24,6 +28,16 @@ const FieldReporting = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [attachedMedia, setAttachedMedia] = useState<Array<{
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    name: string;
+    size: number;
+  }>>([]);
+  const [showMediaOptions, setShowMediaOptions] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
 
   const reportTypes = [
     'Traffic Stop',
