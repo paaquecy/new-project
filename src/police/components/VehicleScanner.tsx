@@ -36,7 +36,7 @@ const VehicleScanner = () => {
   const [isMounted, setIsMounted] = useState(false);
   const [usingSimpleDetector, setUsingSimpleDetector] = useState(false);
   const [usingCustomModel, setUsingCustomModel] = useState(false);
-  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('gemini');
+  const [detectorType, setDetectorType] = useState<'gemini' | 'custom' | 'yolo' | 'simple'>('yolo');
   const [detectionAttempts, setDetectionAttempts] = useState(0);
   const [lastDetectionTime, setLastDetectionTime] = useState<Date | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
