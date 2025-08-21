@@ -18,7 +18,6 @@ import { customYOLODetector } from '../utils/customModelDetection';
 import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
 import { DetectionDiagnostics } from '../utils/detectionDiagnostics';
 import { useData } from '../../contexts/DataContext';
-import DetectionMetrics from './DetectionMetrics';
 
 const VehicleScanner = () => {
   const { lookupVehicle, api } = useData();
