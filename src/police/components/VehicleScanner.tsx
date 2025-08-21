@@ -1136,8 +1136,29 @@ const VehicleScanner = () => {
                   )}
                 </>
               )}
+
+              {/* Detector Status */}
+              {detectorStatus && (detectorType === 'yolo' || detectorType === 'gemini') && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg border-t border-gray-200">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Detection System Status</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span>Object Detection:</span>
+                      <span className={`px-2 py-1 rounded ${detectorStatus.hasObjectDetection ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {detectorStatus.hasObjectDetection ? 'COCO-SSD Active' : 'Fallback Mode'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>OCR Engine:</span>
+                      <span className={`px-2 py-1 rounded ${detectorStatus.hasOCR ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {detectorStatus.hasOCR ? 'Tesseract.js' : 'Basic Analysis'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            
+
             <button
               onClick={handleDocumentEvidence}
               disabled={scanResults.plateNumber === 'N/A'}
