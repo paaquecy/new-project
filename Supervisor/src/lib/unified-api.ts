@@ -406,6 +406,23 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/violations') && options.method === 'PUT') {
+      // Extract violation ID from endpoint
+      const violationIdMatch = endpoint.match(/\/violations\/([^\/]+)\/(approve|reject)/);
+      if (violationIdMatch) {
+        const violationId = violationIdMatch[1];
+        const action = violationIdMatch[2];
+
+        // Find and update violation in store
+        const violationIndex = mockViolationsStore.findIndex(v => v.id === violationId);
+        if (violationIndex !== -1) {
+          mockViolationsStore[violationIndex] = {
+            ...mockViolationsStore[violationIndex],
+            status: action === 'approve' ? 'approved' : 'rejected',
+            updated_at: new Date().toISOString()
+          };
+        }
+      }
+
       return {
         data: {
           success: true,
