@@ -535,7 +535,7 @@ const VehicleScanner = () => {
     }
 
     // First, capture the current camera frame
-    console.log('📷 Capturing current camera frame...');
+    console.log('�� Capturing current camera frame...');
 
     // Trigger capture flash effect
     setCaptureFlash(true);
@@ -1041,9 +1041,7 @@ const VehicleScanner = () => {
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
-                 detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple Detection'}
+                Detection
               </span>
             )}
           </h3>
