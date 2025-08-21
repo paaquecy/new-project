@@ -851,9 +851,9 @@ const VehicleScanner = () => {
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'gemini' ? 'Gemini AI Active' :
-                         detectorType === 'custom' ? 'AI Detection Active' :
-                         detectorType === 'yolo' ? 'YOLO Detection Active' : 'Detection Active'}
+                    🔍 {detectorType === 'gemini' ? 'YOLOv8+OCR Active' :
+                         detectorType === 'custom' ? 'Custom AI Active' :
+                         detectorType === 'yolo' ? 'YOLOv8+OCR Active' : 'Detection Active'}
                   </div>
                 )}
 
