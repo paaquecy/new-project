@@ -48,6 +48,13 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
     return () => clearInterval(timer);
   }, []);
 
+  // Update greeting immediately when navigating to overview
+  useEffect(() => {
+    if (activeNav === 'overview') {
+      setCurrentTime(new Date());
+    }
+  }, [activeNav]);
+
   const getTimeBasedGreeting = () => {
     const currentHour = currentTime.getHours();
     const currentMinutes = currentTime.getMinutes();
