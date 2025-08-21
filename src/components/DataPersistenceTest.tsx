@@ -95,54 +95,6 @@ const DataPersistenceTest: React.FC = () => {
         </div>
       </div>
 
-      {/* Test Actions */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <button
-            onClick={handleTestDataPersistence}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Test Persistence
-          </button>
-          
-          <button
-            onClick={handleRefreshPage}
-            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Refresh Page
-          </button>
-          
-          <button
-            onClick={exportAllData}
-            className="flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Data
-          </button>
-          
-          <button
-            onClick={() => {
-              if (confirm('Are you sure? This will clear all data!')) {
-                clearAllData();
-                addNotification({
-                  title: 'Data Cleared',
-                  message: 'All system data has been reset to defaults',
-                  type: 'warning',
-                  timestamp: new Date().toISOString(),
-                  read: false,
-                  system: 'Main App'
-                });
-              }
-            }}
-            className="flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            Reset Data
-          </button>
-        </div>
-      </div>
 
 
       {/* Recent Activity */}
