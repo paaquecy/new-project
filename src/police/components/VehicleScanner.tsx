@@ -260,12 +260,12 @@ const VehicleScanner = () => {
       result = await Promise.race([detectionPromise, detectionTimeout]);
 
       // Adjust confidence thresholds based on detector type
-      const minConfidence = detectorType === 'gemini' ? 0.7 :
+      const minConfidence = detectorType === 'gemini' ? 0.5 :
                            detectorType === 'custom' ? 0.4 :
-                           detectorType === 'yolo' ? 0.3 : 0.35;
-      const minOcrConfidence = detectorType === 'gemini' ? 0.8 :
+                           detectorType === 'yolo' ? 0.5 : 0.35;
+      const minOcrConfidence = detectorType === 'gemini' ? 0.6 :
                               detectorType === 'custom' ? 0.5 :
-                              detectorType === 'yolo' ? 0.4 : 0.45;
+                              detectorType === 'yolo' ? 0.6 : 0.45;
 
       console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
 
