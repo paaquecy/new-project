@@ -731,13 +731,13 @@ const VehicleScanner = () => {
         <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-blue-600" />
           Live Camera Feed with {
-            detectorType === 'gemini' ? 'Gemini Vision AI' :
+            detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
             detectorType === 'custom' ? 'Custom Trained YOLO' :
-            detectorType === 'yolo' ? 'Standard YOLOv8 + EasyOCR' : 'Simple'
+            detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'
           } Plate Detection
-          {detectorType === 'gemini' && (
+          {(detectorType === 'gemini' || detectorType === 'yolo') && (
             <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-              Gemini AI
+              YOLOv8+OCR
             </span>
           )}
           {detectorType === 'custom' && (
