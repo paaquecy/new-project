@@ -14,6 +14,9 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ title, onSearch, darkMode, onNavigate }) => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { getUnreadNotifications } = useData();
+
+  const unreadCount = getUnreadNotifications().length;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSearch(e.target.value);
