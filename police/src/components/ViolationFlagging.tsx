@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Flag, 
-  Camera, 
-  Send, 
+import {
+  Flag,
+  Camera,
+  Send,
   ChevronDown,
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
+import { unifiedAPI } from '../lib/unified-api';
 
 const ViolationFlagging = () => {
   const [formData, setFormData] = useState({
@@ -46,14 +47,14 @@ const ViolationFlagging = () => {
     alert('Evidence attachment feature would open camera/file picker here');
   };
 
-  const handleSubmitViolation = () => {
+  const handleSubmitViolation = async () => {
     // Validate form
     if (!formData.licensePlate.trim()) {
       setSubmitStatus('error');
       alert('Please enter a license plate number');
       return;
     }
-    
+
     if (!formData.violationType) {
       setSubmitStatus('error');
       alert('Please select a violation type');
@@ -69,11 +70,28 @@ const ViolationFlagging = () => {
     setIsSubmitting(true);
     setSubmitStatus('');
 
-    // Simulate submission process
-    setTimeout(() => {
+    try {
+      // Submit violation to API
+      const violationData = {
+        plate_number: formData.licensePlate,
+        violation_type: formData.violationType,
+        violation_details: formData.violationDetails,
+        location: 'Location not specified', // Could be enhanced with GPS
+        officer_id: '1', // Should come from auth context
+        status: 'pending'
+      };
+
+      const response = await unifiedAPI.createViolation(violationData);
+
+      if (response.error) {
+        setSubmitStatus('error');
+        alert('Failed to submit violation: ' + response.error);
+        return;
+      }
+
       setIsSubmitting(false);
       setSubmitStatus('success');
-      
+
       // Reset form after successful submission
       setTimeout(() => {
         setFormData({
@@ -83,7 +101,11 @@ const ViolationFlagging = () => {
         });
         setSubmitStatus('');
       }, 2000);
-    }, 2000);
+    } catch (error) {
+      setIsSubmitting(false);
+      setSubmitStatus('error');
+      alert('Failed to submit violation. Please try again.');
+    }
   };
 
   return (
