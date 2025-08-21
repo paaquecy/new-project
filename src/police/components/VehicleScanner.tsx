@@ -608,7 +608,7 @@ const VehicleScanner = () => {
         switch (detectorType) {
           case 'gemini':
           case 'yolo':
-            result = await yoloPlateDetector.detectPlate(img);
+            result = await yoloV8PlateDetector.detectPlate(img);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(img);
@@ -617,7 +617,7 @@ const VehicleScanner = () => {
             result = await simplePlateDetector.detectPlate(img);
             break;
           default:
-            result = await yoloPlateDetector.detectPlate(img);
+            result = await yoloV8PlateDetector.detectPlate(img);
         }
       }
 
@@ -949,7 +949,7 @@ const VehicleScanner = () => {
             <div className="font-semibold text-gray-700 mb-2">Debug Information:</div>
             <div className="grid grid-cols-2 gap-2 text-gray-600">
               <span>Component Mounted: {isMounted ? '✅' : '❌'}</span>
-              <span>Video Ref: {videoRef.current ? '✅' : '���'}</span>
+              <span>Video Ref: {videoRef.current ? '✅' : '❌'}</span>
               <span>Camera Active: {cameraActive ? '✅' : '❌'}</span>
               <span>Detection Active: {isScanning ? '🔍' : '⏸️'}</span>
               <span>Detection Attempts: {detectionAttempts}</span>
