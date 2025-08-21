@@ -15,6 +15,7 @@ import { useCamera } from '../hooks/useCamera';
 import { yoloPlateDetector, PlateDetectionResult } from '../utils/yoloPlateDetection';
 import { simplePlateDetector } from '../utils/simplePlateDetection';
 import { customYOLODetector } from '../utils/customModelDetection';
+import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
 import { useData } from '../../contexts/DataContext';
 import DetectionMetrics from './DetectionMetrics';
 
@@ -692,7 +693,7 @@ const VehicleScanner = () => {
         setDetectionResult(null);
       }
 
-      console.log('��� Captured image analysis completed');
+      console.log('✅ Captured image analysis completed');
     } catch (error) {
       console.error('❌ Analysis failed:', error);
       setPlateDetectedFromImage(false);
