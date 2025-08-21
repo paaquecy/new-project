@@ -144,18 +144,6 @@ const DataPersistenceTest: React.FC = () => {
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-        <h5 className="font-medium text-blue-800 mb-2">Testing Instructions:</h5>
-        <ol className="text-sm text-blue-700 space-y-1">
-          <li>1. Click "Test Persistence" to add test data</li>
-          <li>2. Click "Refresh Page" to reload the application</li>
-          <li>3. Check if the test notification appears in notifications</li>
-          <li>4. Switch between apps (Police, DVLA, Supervisor) to verify shared data</li>
-          <li>5. Make changes in one app and verify they appear in others</li>
-          <li>6. Use "Export Data" to download all system data as JSON</li>
-        </ol>
-      </div>
 
       {/* Recent Activity */}
       {notifications.length > 0 && (
