@@ -570,6 +570,7 @@ const VehicleScanner = () => {
 
         switch (detectorType) {
           case 'gemini':
+            console.log('🤖 Using Gemini AI for plate detection...');
             result = await geminiPlateDetector.detectPlate(frame);
             break;
           case 'custom':
@@ -582,9 +583,28 @@ const VehicleScanner = () => {
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
+            console.log('🤖 Using default Gemini AI for plate detection...');
             result = await geminiPlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
+        console.warn('❌ Detection failed:', canvasError);
+
+        // Check if it's a Gemini API issue
+        if (canvasError instanceof Error && canvasError.message.includes('Gemini API')) {
+          console.error('🚨 Gemini API Error:', canvasError.message);
+          setScanResults({
+            plateNumber: 'API Error',
+            vehicleModel: 'N/A',
+            owner: 'N/A',
+            status: 'Gemini API configuration needed',
+            statusType: 'violation'
+          });
+
+          // Show user-friendly error
+          alert('Gemini AI service is not properly configured. Please check the console for setup instructions.');
+          return;
+        }
+
         console.warn('❌ Canvas detection failed, trying Image element approach:', canvasError);
 
         // Fallback: Create an image element from the captured image data URL
