@@ -92,6 +92,7 @@ const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate }) => 
             {quickActions.map((action, index) => (
               <button
                 key={index}
+                onClick={() => handleQuickAction(action.id)}
                 className="w-full flex items-center px-3 lg:px-4 py-2 lg:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
               >
                 <action.icon className="w-3 lg:w-4 h-3 lg:h-4 mr-2 lg:mr-3" />
