@@ -38,10 +38,24 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const getTimeBasedGreeting = () => {
+    const currentHour = new Date().getHours();
+
+    if (currentHour >= 5 && currentHour < 12) {
+      return 'Good Morning, Officer!';
+    } else if (currentHour >= 12 && currentHour < 17) {
+      return 'Good Afternoon, Officer!';
+    } else if (currentHour >= 17 && currentHour < 21) {
+      return 'Good Evening, Officer!';
+    } else {
+      return 'Good Night, Officer!';
+    }
+  };
+
   const getPageTitle = () => {
     switch (activeNav) {
       case 'overview':
-        return 'Good Morning, Officer!';
+        return getTimeBasedGreeting();
       case 'scanner':
         return 'Vehicle Plate Scanner';
       case 'flagging':
