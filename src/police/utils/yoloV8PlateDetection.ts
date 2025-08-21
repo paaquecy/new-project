@@ -70,24 +70,35 @@ export class YOLOv8PlateDetector {
 
       // Initialize enhanced OCR worker
       console.log('🔤 Initializing enhanced OCR worker...');
-      this.ocrWorker = await createWorker('eng', 1, {
-        logger: (m: any) => {
-          if (m.status === 'recognizing text' && m.progress) {
-            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+      try {
+        const ocrTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('OCR initialization timeout')), 15000)
+        );
+
+        const ocrWorkerPromise = createWorker('eng', 1, {
+          logger: (m: any) => {
+            if (m.status === 'recognizing text' && m.progress) {
+              console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+            }
           }
-        }
-      });
+        });
 
-      // Configure OCR for license plate recognition
-      await this.ocrWorker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-',
-        tessedit_pageseg_mode: '8', // Treat image as single word
-        tessedit_ocr_engine_mode: '2', // Use LSTM OCR engine
-        preserve_interword_spaces: '0',
-        user_defined_dpi: '300'
-      });
+        this.ocrWorker = await Promise.race([ocrWorkerPromise, ocrTimeout]);
 
-      console.log('✅ Enhanced OCR worker initialized successfully');
+        // Configure OCR for license plate recognition
+        await this.ocrWorker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-',
+          tessedit_pageseg_mode: '8', // Treat image as single word
+          tessedit_ocr_engine_mode: '2', // Use LSTM OCR engine
+          preserve_interword_spaces: '0',
+          user_defined_dpi: '300'
+        });
+
+        console.log('✅ Enhanced OCR worker initialized successfully');
+      } catch (ocrError) {
+        console.warn('⚠️ Failed to initialize OCR worker, will use basic image analysis:', ocrError);
+        this.ocrWorker = null;
+      }
 
       this.isInitialized = true;
       console.log('🎉 YOLOv8-style + Enhanced OCR detector ready!');
@@ -487,7 +498,7 @@ export class YOLOv8PlateDetector {
     }
 
     try {
-      console.log('�� Performing advanced OCR...');
+      console.log('🔤 Performing advanced OCR...');
       
       const { data: { text, confidence } } = await this.ocrWorker.recognize(canvas);
       
