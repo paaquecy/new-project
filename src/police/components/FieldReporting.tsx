@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { 
-  FileText, 
-  Camera, 
-  Send, 
+import React, { useState, useRef } from 'react';
+import {
+  FileText,
+  Camera,
+  Send,
   ChevronDown,
   Clock,
   CheckCircle,
   AlertCircle,
-  Eye
+  Eye,
+  Upload,
+  X,
+  Image as ImageIcon,
+  Video
 } from 'lucide-react';
 
 const FieldReporting = () => {
