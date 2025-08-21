@@ -117,52 +117,72 @@ const History: React.FC = () => {
   };
 
   const exportToCSV = () => {
-    // Define CSV headers
-    const headers = [
-      'Plate Number',
-      'Offense',
-      'Description',
-      'Officer',
-      'Date Captured',
-      'Status',
-      'Reviewed By',
-      'Review Date',
-      'Location'
-    ];
+    try {
+      console.log('Starting CSV export...');
 
-    // Convert data to CSV format
-    const csvData = filteredViolations.map(violation => [
-      violation.plateNumber,
-      violation.offense,
-      violation.description || '',
-      violation.capturedBy,
-      formatDateTime(violation.dateTime),
-      violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected',
-      violation.reviewedBy || '',
-      violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '',
-      violation.location || ''
-    ]);
+      // Define CSV headers
+      const headers = [
+        'Plate Number',
+        'Offense',
+        'Description',
+        'Officer',
+        'Date Captured',
+        'Status',
+        'Reviewed By',
+        'Review Date',
+        'Location'
+      ];
 
-    // Combine headers and data
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
-      .join('\n');
+      // Convert data to CSV format
+      const csvData = filteredViolations.map(violation => [
+        violation.plateNumber || '',
+        violation.offense || '',
+        violation.description || '',
+        violation.capturedBy || '',
+        violation.dateTime ? formatDateTime(violation.dateTime) : '',
+        violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected',
+        violation.reviewedBy || '',
+        violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '',
+        violation.location || ''
+      ]);
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
+      // Combine headers and data
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
+        .join('\n');
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `violation-history-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+      console.log('CSV content generated:', csvContent.substring(0, 200) + '...');
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const filename = `violation-history-${new Date().toISOString().split('T')[0]}.csv`;
 
-    // Show success message
-    alert(`Successfully exported ${filteredViolations.length} records to CSV!`);
+      console.log('Creating download link...');
+
+      // Use a more compatible download method
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+
+      document.body.appendChild(link);
+      link.click();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      // Show success message
+      console.log('CSV export completed successfully');
+      alert(`Successfully exported ${filteredViolations.length} records to CSV file: ${filename}`);
+
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert(`Failed to export CSV: ${error.message}`);
+    }
   };
 
   const exportToPDF = () => {
