@@ -570,8 +570,8 @@ const VehicleScanner = () => {
         switch (detectorType) {
           case 'gemini':
           case 'yolo':
-            console.log('🤖 Using YOLO+OCR for plate detection...');
-            result = await yoloPlateDetector.detectPlate(frame);
+            console.log('🤖 Using YOLOv8+OCR for plate detection...');
+            result = await yoloV8PlateDetector.detectPlate(frame);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(frame);
@@ -580,8 +580,8 @@ const VehicleScanner = () => {
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
-            console.log('🤖 Using default YOLO+OCR for plate detection...');
-            result = await yoloPlateDetector.detectPlate(frame);
+            console.log('🤖 Using default YOLOv8+OCR for plate detection...');
+            result = await yoloV8PlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
         console.warn('❌ Detection failed, trying Image element approach:', canvasError);
@@ -949,7 +949,7 @@ const VehicleScanner = () => {
             <div className="font-semibold text-gray-700 mb-2">Debug Information:</div>
             <div className="grid grid-cols-2 gap-2 text-gray-600">
               <span>Component Mounted: {isMounted ? '✅' : '❌'}</span>
-              <span>Video Ref: {videoRef.current ? '✅' : '❌'}</span>
+              <span>Video Ref: {videoRef.current ? '✅' : '���'}</span>
               <span>Camera Active: {cameraActive ? '✅' : '❌'}</span>
               <span>Detection Active: {isScanning ? '🔍' : '⏸️'}</span>
               <span>Detection Attempts: {detectionAttempts}</span>
