@@ -9,27 +9,153 @@ This project contains four distinct frontend applications, each designed for spe
 - **Target Users**: System administrators, management personnel
 - **Location**: `src/` directory
 
-### **Core Functionality**
-- **Authentication & Session Management**: Complete login/registration flow with session validation
-- **User Management**: Pending approvals, user account administration, role assignments
-- **System Administration**: Administrative controls, audit logs, security settings
-- **Analytics & Reporting**: System-wide analytics, violation tracking, performance metrics
-- **Portal Integration**: Acts as a gateway to launch domain-specific applications (DVLA, Police, Supervisor)
-- **Dashboard Overview**: Central monitoring of system status and activities
+### **Complete Page and Component Breakdown**
 
-### **Key Components**
-- `src/components/Sidebar.tsx` - Primary navigation control
-- `src/components/TopBar.tsx` - Header with search and navigation
-- `src/components/Dashboard.tsx` - Overview analytics dashboard
-- `src/components/PendingApprovalsTable.tsx` - User approval management
-- `src/contexts/AuthContext.tsx` - Authentication provider
-- `src/utils/sessionManager.ts` - Session handling and validation
+#### **Authentication & Entry Pages**
+- **`src/components/LoginPage.tsx`**
+  - **Purpose**: Multi-role authentication gateway
+  - **Features**: Static test credentials, unified API login, Supabase integration for police, development bypass
+  - **User Journey**: Authenticates users and routes to appropriate frontend (main/DVLA/police/supervisor)
+  - **Technical Implementation**: Uses AuthContext, unifiedAPI, environment flags with fallback authentication
+
+- **`src/components/RegisterPage.tsx`**
+  - **Purpose**: User registration and onboarding
+  - **Features**: Account creation forms, role selection, initial setup
+  - **User Journey**: New user registration with role-based access setup
+
+#### **Navigation & Layout Components**
+- **`src/components/Sidebar.tsx`**
+  - **Purpose**: Primary navigation control for admin dashboard
+  - **Features**: Menu items with icons, active highlighting, responsive mobile menu overlay, logout functionality
+  - **Navigation Items**: Overview Dashboard, Pending Approvals, Violation Management, Notifications, User Account Management, Vehicle Registry, Analytics & Reporting, Security Management, Administrative Controls, System Settings
+  - **Technical Implementation**: Controlled mobile state, lucide-react icons, theme-aware styling
+
+- **`src/components/TopBar.tsx`**
+  - **Purpose**: Header with search and navigation controls
+  - **Features**: Global search, user profile access, quick actions
+  - **User Journey**: Provides consistent top-level navigation across all admin sections
+
+#### **Dashboard & Overview Pages**
+- **`src/components/Dashboard.tsx`**
+  - **Purpose**: Overview KPIs and system health monitoring
+  - **Features**: Total vehicles scanned, active/resolved violations, growth metrics, recent activity feed, upcoming deadlines, performance charts, pending approval alerts
+  - **User Journey**: Landing page providing system overview and actionable items
+  - **Technical Implementation**: KPI cards, activity feeds, deadline lists, chart placeholders
+
+#### **User & Account Management**
+- **`src/components/PendingApprovalsTable.tsx`**
+  - **Purpose**: Manage pending user registrations and role approvals
+  - **Features**: Approval/rejection workflow, user details review, batch operations
+  - **User Journey**: Admin reviews and processes new user applications
+
+- **`src/components/UserAccountManagement.tsx`**
+  - **Purpose**: Complete user account administration
+  - **Features**: User search, role management, account status control, password resets
+  - **User Journey**: Admin manages existing user accounts and permissions
+
+- **`src/components/UserProfileModal.tsx`**
+  - **Purpose**: Detailed user profile view and editing
+  - **Features**: Profile information display, edit capabilities, role history
+  - **User Journey**: Detailed user inspection and profile management
+
+- **`src/components/AddNewRole.tsx`**
+  - **Purpose**: Role creation and permission management
+  - **Features**: Custom role definition, permission assignment, role hierarchy
+  - **User Journey**: Admin creates new roles with specific permissions
+
+#### **Vehicle & Violation Management**
+- **`src/components/VehicleRegistry.tsx`**
+  - **Purpose**: Browse and manage vehicle records from unified/DVLA dataset
+  - **Features**: Vehicle search, owner information, registration details, status tracking
+  - **User Journey**: Admin looks up vehicle records and inspects registration information
+  - **Technical Implementation**: Uses unifiedAPI.getDVLAVehicles(), includes fallback offline data
+
+- **`src/components/ViolationTable.tsx`**
+  - **Purpose**: Comprehensive violation records management
+  - **Features**: Violation listing, status tracking, evidence review, action processing
+  - **User Journey**: Admin reviews and manages violation lifecycle
+
+- **`src/components/ViolationFilterBar.tsx`**
+  - **Purpose**: Advanced filtering for violation searches
+  - **Features**: Date range, status, officer, violation type filters
+  - **User Journey**: Enables efficient violation record searches
+
+#### **Analytics & Reporting**
+- **`src/components/AnalyticsReporting.tsx`**
+  - **Purpose**: System-wide analytics and report generation
+  - **Features**: Performance metrics, trend analysis, custom report creation, data export
+  - **User Journey**: Admin generates insights and reports for management
+
+#### **System Administration**
+- **`src/components/AdministrativeControls.tsx`**
+  - **Purpose**: High-level system administration functions
+  - **Features**: System configuration, bulk operations, maintenance mode controls
+  - **User Journey**: Admin performs system-level administrative tasks
+
+- **`src/components/SystemSettings.tsx`**
+  - **Purpose**: Global system configuration management
+  - **Features**: Application settings, feature toggles, integration configurations
+  - **User Journey**: Admin configures system-wide settings and preferences
+
+- **`src/components/SecurityManagement.tsx`**
+  - **Purpose**: Security policy and access control management
+  - **Features**: Password policies, session timeouts, security audit configuration
+  - **User Journey**: Admin manages security policies and access controls
+
+- **`src/components/AuditLogViewer.tsx`**
+  - **Purpose**: System audit trail and activity monitoring
+  - **Features**: Activity logs, user actions tracking, system events, search and filtering
+  - **User Journey**: Admin reviews system activity for compliance and troubleshooting
+
+#### **Notifications & Communication**
+- **`src/components/NotificationsPage.tsx`**
+  - **Purpose**: Central notification management hub
+  - **Features**: System alerts, user messages, pending items, notification history
+  - **User Journey**: Admin manages and reviews all system notifications
+
+- **`src/components/NotificationsModal.tsx`**
+  - **Purpose**: Detailed notification view and management
+  - **Features**: Full notification details, action buttons, reply functionality
+  - **User Journey**: Admin responds to and manages individual notifications
+
+- **`src/components/NotificationsContent.tsx`**
+  - **Purpose**: Notification content rendering and formatting
+  - **Features**: Rich content display, attachment handling, action parsing
+  - **User Journey**: Provides formatted notification content display
+
+- **`src/components/EmailNotificationHistory.tsx`**
+  - **Purpose**: Email notification tracking and history
+  - **Features**: Email logs, delivery status, template management
+  - **User Journey**: Admin monitors email communications and templates
+
+#### **Data Management & Testing**
+- **`src/components/DataPersistenceTest.tsx`**
+  - **Purpose**: Database connectivity and data persistence testing
+  - **Features**: Connection testing, data validation, backup verification
+  - **User Journey**: Admin validates system data integrity and connectivity
+
+- **`src/components/FileUpload.tsx`**
+  - **Purpose**: File upload functionality for various system components
+  - **Features**: Multi-file upload, format validation, progress tracking
+  - **User Journey**: Admin uploads documents, images, and data files
+
+- **`src/components/FilterBar.tsx`**
+  - **Purpose**: Generic filtering component for data tables
+  - **Features**: Multi-criteria filtering, saved filter sets, quick search
+  - **User Journey**: Provides consistent filtering across different data views
+
+#### **Session & Status Management**
+- **`src/components/SessionStatusIndicator.tsx`**
+  - **Purpose**: Real-time session status and activity monitoring
+  - **Features**: Session timeout warnings, activity indicators, auto-logout
+  - **User Journey**: Provides session awareness and prevents data loss
 
 ### **Architecture Patterns**
-- **Navigation**: State-driven single-page application
-- **Authentication**: Custom AuthContext with session persistence
-- **Integration**: Mounts other frontend applications as components
+- **Navigation**: State-driven single-page application with integrated sub-applications
+- **Authentication**: Custom AuthContext with session persistence and multi-role support
+- **Integration**: Mounts other frontend applications (DVLA, Police, Supervisor) as components
 - **UI Framework**: Tailwind CSS with Inter font family
+- **Data Management**: Unified API integration with fallback offline capabilities
 
 ---
 
