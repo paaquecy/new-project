@@ -1160,6 +1160,19 @@ const VehicleScanner = () => {
                         {detectorStatus.hasOCR ? 'Tesseract.js' : 'Basic Analysis'}
                       </span>
                     </div>
+                    {(!detectorStatus.hasObjectDetection || !detectorStatus.hasOCR) && (
+                      <button
+                        onClick={async () => {
+                          const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
+                          DetectionDiagnostics.logDiagnostics(diagnostics);
+                          const networkTest = await DetectionDiagnostics.runNetworkTest();
+                          console.log('🌐 Network test:', networkTest);
+                        }}
+                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
+                      >
+                        Run Diagnostics
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
