@@ -50,14 +50,17 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
 
   const getTimeBasedGreeting = () => {
     const currentHour = currentTime.getHours();
+    const currentMinutes = currentTime.getMinutes();
 
+    // More detailed time-based greetings
     if (currentHour >= 5 && currentHour < 12) {
       return 'Good Morning, Officer!';
     } else if (currentHour >= 12 && currentHour < 17) {
       return 'Good Afternoon, Officer!';
-    } else if (currentHour >= 17 && currentHour < 21) {
+    } else if (currentHour >= 17 && currentHour < 22) {
       return 'Good Evening, Officer!';
     } else {
+      // Late night/early morning (10 PM - 5 AM)
       return 'Good Night, Officer!';
     }
   };
