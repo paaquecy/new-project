@@ -111,9 +111,7 @@ const VehicleScanner = () => {
     const initializeDetector = async () => {
       // Try Gemini Vision API first
       try {
-        console.log('Starting Gemini Vision API initialization...');
-        await geminiPlateDetector.initialize();
-        console.log('Gemini Vision API initialized successfully');
+        console.log('Skipping Gemini initialization (replaced with YOLO+OCR)...');
         setDetectorType('gemini');
         setUsingCustomModel(false);
         setUsingSimpleDetector(false);
