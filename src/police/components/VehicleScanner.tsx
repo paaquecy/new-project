@@ -114,7 +114,15 @@ const VehicleScanner = () => {
       try {
         console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
         await yoloV8PlateDetector.initialize();
-        console.log('✅ YOLOv8 + Enhanced OCR initialized successfully');
+        const status = yoloV8PlateDetector.getStatus();
+        console.log('✅ YOLOv8 + Enhanced OCR initialized:', status);
+
+        if (!status.hasObjectDetection) {
+          console.warn('⚠️ Object detection model not available - using fallback detection methods');
+        }
+        if (!status.hasOCR) {
+          console.warn('⚠️ OCR worker not available - using basic image analysis');
+        }
         setDetectorType('yolo');
         setUsingCustomModel(false);
         setUsingSimpleDetector(false);
