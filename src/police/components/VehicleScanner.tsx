@@ -42,6 +42,7 @@ const VehicleScanner = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [captureFlash, setCaptureFlash] = useState(false);
   const [plateDetectedFromImage, setPlateDetectedFromImage] = useState(false);
+  const [detectorStatus, setDetectorStatus] = useState<{initialized: boolean, hasObjectDetection: boolean, hasOCR: boolean, models: string[]} | null>(null);
   const autoStartRef = useRef(false);
 
   const {
@@ -631,7 +632,7 @@ const VehicleScanner = () => {
       // Process the detection result
       if (result && result.plateNumber) {
         console.log('✅ Plate detected from captured image:', result);
-        console.log('📊 Detection confidence:', result.confidence);
+        console.log('�� Detection confidence:', result.confidence);
 
         // Always show the detected plate number, regardless of confidence
         const detectedPlateNumber = result.plateNumber;
