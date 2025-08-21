@@ -95,8 +95,151 @@ const History: React.FC = () => {
   });
 
   const handleExport = (format: 'csv' | 'pdf') => {
-    console.log(`Exporting ${filteredViolations.length} records as ${format.toUpperCase()}`);
-    alert(`Exporting ${filteredViolations.length} records as ${format.toUpperCase()}. Feature coming soon!`);
+    if (filteredViolations.length === 0) {
+      alert('No data to export. Please adjust your filters.');
+      return;
+    }
+
+    if (format === 'csv') {
+      exportToCSV();
+    } else if (format === 'pdf') {
+      exportToPDF();
+    }
+  };
+
+  const exportToCSV = () => {
+    // Define CSV headers
+    const headers = [
+      'Plate Number',
+      'Offense',
+      'Description',
+      'Officer',
+      'Date Captured',
+      'Status',
+      'Reviewed By',
+      'Review Date',
+      'Location'
+    ];
+
+    // Convert data to CSV format
+    const csvData = filteredViolations.map(violation => [
+      violation.plateNumber,
+      violation.offense,
+      violation.description || '',
+      violation.capturedBy,
+      formatDateTime(violation.dateTime),
+      violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected',
+      violation.reviewedBy || '',
+      violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '',
+      violation.location || ''
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `violation-history-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Show success message
+    alert(`Successfully exported ${filteredViolations.length} records to CSV!`);
+  };
+
+  const exportToPDF = () => {
+    // Create HTML content for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Violation History Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .date { text-align: right; margin-bottom: 20px; font-size: 12px; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+          th { background-color: #f8f9fa; font-weight: bold; }
+          .status-approved { color: #16a34a; font-weight: bold; }
+          .status-rejected { color: #dc2626; font-weight: bold; }
+          .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Traffic Violation History Report</h1>
+          <h3>Supervisor Dashboard</h3>
+        </div>
+
+        <div class="date">
+          Generated on: ${new Date().toLocaleString()}
+        </div>
+
+        <p><strong>Total Records:</strong> ${filteredViolations.length}</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Plate Number</th>
+              <th>Offense</th>
+              <th>Officer</th>
+              <th>Date Captured</th>
+              <th>Status</th>
+              <th>Reviewed By</th>
+              <th>Review Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredViolations.map(violation => `
+              <tr>
+                <td><strong>${violation.plateNumber}</strong></td>
+                <td>${violation.offense}</td>
+                <td>${violation.capturedBy}</td>
+                <td>${formatDateTime(violation.dateTime)}</td>
+                <td class="status-${violation.status === 'approved' || violation.status === 'accepted' ? 'approved' : 'rejected'}">
+                  ${violation.status === 'approved' || violation.status === 'accepted' ? 'Approved' : 'Rejected'}
+                </td>
+                <td>${violation.reviewedBy || '-'}</td>
+                <td>${violation.reviewedAt ? formatDateTime(violation.reviewedAt) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>This report was generated automatically by the Traffic Management System</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create a new window and print
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // Wait for content to load then trigger print
+      printWindow.onload = () => {
+        printWindow.print();
+        // Show success message after a short delay
+        setTimeout(() => {
+          alert(`Successfully generated PDF with ${filteredViolations.length} records!`);
+        }, 1000);
+      };
+    } else {
+      alert('Please allow popups to export PDF reports.');
+    }
   };
 
   const formatDateTime = (dateTime: string) => {
