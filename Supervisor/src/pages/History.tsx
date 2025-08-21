@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Calendar, User, Download, CheckCircle, XCircle, Filter } from 'lucide-react';
-import { mockViolations } from '../data/mockData';
+import { unifiedAPI } from '../lib/unified-api';
 
 const History: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -8,9 +8,67 @@ const History: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [violations, setViolations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const reviewedViolations = mockViolations.filter(v => v.status !== 'pending');
-  const officers = Array.from(new Set(mockViolations.map(v => v.capturedBy)));
+  // Fetch reviewed violations on component mount
+  useEffect(() => {
+    const fetchViolations = async () => {
+      try {
+        // Fetch both approved and rejected violations
+        const [approvedResponse, rejectedResponse] = await Promise.all([
+          unifiedAPI.getViolations(undefined, 'approved'),
+          unifiedAPI.getViolations(undefined, 'rejected')
+        ]);
+
+        const allViolations = [];
+
+        if (approvedResponse.data) {
+          allViolations.push(...approvedResponse.data.map(v => ({
+            id: v.id,
+            plateNumber: v.plate_number,
+            offense: v.violation_type,
+            description: v.violation_details,
+            capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+            dateTime: v.created_at || new Date().toISOString(),
+            status: v.status,
+            location: v.location || 'Location not specified',
+            reviewedBy: 'Supervisor',
+            reviewedAt: v.updated_at || v.created_at
+          })));
+        }
+
+        if (rejectedResponse.data) {
+          allViolations.push(...rejectedResponse.data.map(v => ({
+            id: v.id,
+            plateNumber: v.plate_number,
+            offense: v.violation_type,
+            description: v.violation_details,
+            capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+            dateTime: v.created_at || new Date().toISOString(),
+            status: v.status,
+            location: v.location || 'Location not specified',
+            reviewedBy: 'Supervisor',
+            reviewedAt: v.updated_at || v.created_at,
+            rejectionReason: 'Rejected by supervisor'
+          })));
+        }
+
+        // Sort by review date (most recent first)
+        allViolations.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+        setViolations(allViolations);
+      } catch (error) {
+        console.error('Failed to fetch violations:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchViolations();
+  }, []);
+
+  const reviewedViolations = violations;
+  const officers = Array.from(new Set(violations.map(v => v.capturedBy)));
 
   const filteredViolations = reviewedViolations.filter(violation => {
     const matchesSearch = violation.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
