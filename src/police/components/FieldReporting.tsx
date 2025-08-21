@@ -527,6 +527,90 @@ const FieldReporting = () => {
           ))}
         </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Media Options Modal */}
+      {showMediaOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Attach Media</h3>
+            <div className="space-y-3">
+              <button
+                onClick={handleCameraCapture}
+                className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Camera className="w-5 h-5 mr-2" />
+                Take Photo
+              </button>
+              <button
+                onClick={handleFileSelect}
+                className="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                Choose Files
+              </button>
+              <button
+                onClick={() => setShowMediaOptions(false)}
+                className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Capture Modal */}
+      {showCameraCapture && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Take Photo</h3>
+              <button
+                onClick={closeCameraCapture}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="relative mb-4">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full rounded-lg"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={capturePhoto}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Capture Photo
+              </button>
+              <button
+                onClick={closeCameraCapture}
+                className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
