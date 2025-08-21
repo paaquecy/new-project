@@ -16,6 +16,7 @@ import { yoloPlateDetector, PlateDetectionResult } from '../utils/yoloPlateDetec
 import { simplePlateDetector } from '../utils/simplePlateDetection';
 import { customYOLODetector } from '../utils/customModelDetection';
 import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
+import { DetectionDiagnostics } from '../utils/detectionDiagnostics';
 import { useData } from '../../contexts/DataContext';
 import DetectionMetrics from './DetectionMetrics';
 
