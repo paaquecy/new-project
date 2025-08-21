@@ -95,15 +95,24 @@ const History: React.FC = () => {
   });
 
   const handleExport = (format: 'csv' | 'pdf') => {
+    console.log('Export triggered:', format);
+    console.log('Filtered violations count:', filteredViolations.length);
+    console.log('Filtered violations data:', filteredViolations);
+
     if (filteredViolations.length === 0) {
       alert('No data to export. Please adjust your filters.');
       return;
     }
 
-    if (format === 'csv') {
-      exportToCSV();
-    } else if (format === 'pdf') {
-      exportToPDF();
+    try {
+      if (format === 'csv') {
+        exportToCSV();
+      } else if (format === 'pdf') {
+        exportToPDF();
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`Export failed: ${error.message}`);
     }
   };
 
