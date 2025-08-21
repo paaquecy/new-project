@@ -565,21 +565,19 @@ const VehicleScanner = () => {
 
         switch (detectorType) {
           case 'gemini':
-            console.log('🤖 Using Gemini AI for plate detection...');
-            result = await geminiPlateDetector.detectPlate(frame);
+          case 'yolo':
+            console.log('🤖 Using YOLO+OCR for plate detection...');
+            result = await yoloPlateDetector.detectPlate(frame);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(frame);
-            break;
-          case 'yolo':
-            result = await yoloPlateDetector.detectPlate(frame);
             break;
           case 'simple':
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
-            console.log('🤖 Using default Gemini AI for plate detection...');
-            result = await geminiPlateDetector.detectPlate(frame);
+            console.log('🤖 Using default YOLO+OCR for plate detection...');
+            result = await yoloPlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
         console.warn('❌ Detection failed:', canvasError);
