@@ -167,7 +167,8 @@ const VehicleScanner = () => {
       // Cleanup based on which detector is active
       switch (detectorType) {
         case 'gemini':
-          console.log('Gemini detector removed');
+        case 'yolo':
+          yoloV8PlateDetector.cleanup();
           break;
         case 'custom':
           customYOLODetector.cleanup();
@@ -266,7 +267,7 @@ const VehicleScanner = () => {
                               detectorType === 'custom' ? 0.5 :
                               detectorType === 'yolo' ? 0.4 : 0.45;
 
-      console.log('🎯 Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
+      console.log('���� Detection thresholds:', { minConfidence, minOcrConfidence, detectorType });
 
       console.log('🔍 Detection result:', {
         plateNumber: result?.plateNumber,
@@ -579,7 +580,7 @@ const VehicleScanner = () => {
             result = await simplePlateDetector.detectPlate(frame);
             break;
           default:
-            console.log('���� Using default YOLO+OCR for plate detection...');
+            console.log('🤖 Using default YOLO+OCR for plate detection...');
             result = await yoloPlateDetector.detectPlate(frame);
         }
       } catch (canvasError) {
