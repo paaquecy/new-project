@@ -107,16 +107,26 @@ export class GeminiPlateDetector {
 
   private async analyzeWithGemini(base64Image: string): Promise<GeminiPlateDetectionResult | null> {
     try {
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                text: `Analyze this image and detect any license plates. If you find a license plate, extract the text from it. 
+      // Validate API key first
+      if (!this.apiKey || this.apiKey === 'test-key-for-debugging' || this.apiKey.length < 10) {
+        console.error('Invalid Gemini API key detected. Please set a valid VITE_GEMINI_API_KEY environment variable.');
+        throw new Error('Invalid or missing Gemini API key');
+      }
+
+      // Check image size to avoid hitting API limits
+      const requestSize = base64Image.length * 0.75; // Approximate size in bytes
+      const maxSize = 18 * 1024 * 1024; // 18MB to be safe (API limit is 20MB)
+
+      if (requestSize > maxSize) {
+        console.error(`Image too large for Gemini API: ${Math.round(requestSize / 1024 / 1024)}MB (max: 18MB)`);
+        throw new Error('Image too large for Gemini API');
+      }
+
+      const requestBody = {
+        contents: [{
+          parts: [
+            {
+              text: `Analyze this image and detect any license plates. If you find a license plate, extract the text from it.
 
 Instructions:
 1. Look carefully for rectangular license plates in the image
@@ -126,20 +136,46 @@ Instructions:
 5. Be very accurate with the text extraction
 
 Please respond with just the license plate text (like "GR-1234-23") or "NONE" if no license plate is found.`
-              },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: base64Image
-                }
+            },
+            {
+              inline_data: {
+                mime_type: "image/jpeg",
+                data: base64Image
               }
-            ]
-          }]
-        })
+            }
+          ]
+        }]
+      };
+
+      console.log('🔍 Sending request to Gemini API...');
+
+      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        // Get more detailed error information
+        let errorDetails = '';
+        try {
+          const errorData = await response.json();
+          errorDetails = errorData.error?.message || JSON.stringify(errorData);
+        } catch (e) {
+          errorDetails = await response.text();
+        }
+
+        console.error('Gemini API error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          details: errorDetails,
+          apiKeyValid: this.apiKey && this.apiKey !== 'test-key-for-debugging',
+          requestSizeMB: Math.round(requestSize / 1024 / 1024 * 100) / 100
+        });
+
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorDetails}`);
       }
 
       const data = await response.json();
