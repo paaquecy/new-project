@@ -238,9 +238,9 @@ const VehicleScanner = () => {
 
     try {
       console.log('🎯 Running plate detection attempt #', detectionAttempts + 1, 'with',
-        detectorType === 'gemini' ? 'Gemini Vision API' :
+        detectorType === 'gemini' ? 'YOLOv8+OCR (former Gemini)' :
         detectorType === 'custom' ? 'custom trained model' :
-        detectorType === 'yolo' ? 'standard YOLOv8 + EasyOCR' : 'simple detector');
+        detectorType === 'yolo' ? 'YOLOv8+OCR detector' : 'simple detector');
 
       let result;
       const detectionPromise = (async () => {
