@@ -37,6 +37,7 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
   const [activeNav, setActiveNav] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const getTimeBasedGreeting = () => {
     const currentHour = new Date().getHours();
