@@ -164,7 +164,7 @@ const VehicleScanner = () => {
       // Cleanup based on which detector is active
       switch (detectorType) {
         case 'gemini':
-          geminiPlateDetector.cleanup();
+          console.log('Gemini detector removed');
           break;
         case 'custom':
           customYOLODetector.cleanup();
