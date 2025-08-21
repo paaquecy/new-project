@@ -307,7 +307,7 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/violations') && options.method === 'GET') {
-      const mockViolations = [
+      const allMockViolations = [
         {
           id: 'mock-violation-1',
           plate_number: 'GS-1657-20',
@@ -349,10 +349,34 @@ class UnifiedAPIClient {
           fine_amount: 75,
           created_at: new Date(Date.now() - 172800000).toISOString(),
           updated_at: new Date(Date.now() - 86400000).toISOString()
+        },
+        {
+          id: 'mock-violation-4',
+          plate_number: 'ABC123',
+          vehicle_id: '4',
+          officer_id: '2',
+          violation_type: 'Illegal Parking',
+          violation_details: 'Parked in disabled spot without permit',
+          location: 'Shopping Mall, Accra',
+          status: 'rejected',
+          evidence_urls: ['https://example.com/evidence4.jpg'],
+          fine_amount: 150,
+          created_at: new Date(Date.now() - 259200000).toISOString(),
+          updated_at: new Date(Date.now() - 172800000).toISOString()
         }
       ];
-      
-      return { data: mockViolations as T };
+
+      // Parse query parameters from endpoint
+      const url = new URL(endpoint, 'http://localhost');
+      const statusParam = url.searchParams.get('status');
+
+      // Filter violations by status if provided
+      let filteredViolations = allMockViolations;
+      if (statusParam) {
+        filteredViolations = allMockViolations.filter(v => v.status === statusParam);
+      }
+
+      return { data: filteredViolations as T };
     }
 
     if (endpoint.includes('/violations') && options.method === 'POST') {
