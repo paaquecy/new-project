@@ -735,8 +735,6 @@ const VehicleScanner = () => {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Detection Metrics */}
-      <DetectionMetrics />
 
       {/* Row 1 - Live Camera Feed */}
       <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
