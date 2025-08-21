@@ -353,9 +353,9 @@ const VehicleScanner = () => {
     } catch (error) {
       console.error('Error during plate detection:', error);
 
-      // Implement fallback chain: gemini -> custom -> yolo -> simple
-      if (detectorType === 'gemini') {
-        console.log('Gemini detector failed, attempting fallback to custom model...');
+      // Implement fallback chain: yolo -> custom -> simple
+      if (detectorType === 'gemini' || detectorType === 'yolo') {
+        console.log('YOLOv8+OCR detector failed, attempting fallback to custom model...');
         try {
           await customYOLODetector.initialize();
           setDetectorType('custom');
