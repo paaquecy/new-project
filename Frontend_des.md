@@ -285,28 +285,129 @@ This project contains four distinct frontend applications, each designed for spe
 - **Target Users**: Police officers, field enforcement agents
 - **Location**: `police/src/` directory
 
-### **Core Functionality**
-- **Vehicle Scanning**: Real-time license plate recognition using camera
-- **Violation Processing**: Create and flag traffic violations
-- **Vehicle Information Access**: Quick lookup of vehicle registration data
-- **Field Reporting**: Generate reports from field operations
-- **Violation Management**: Track and manage violation records
-- **Personal Settings**: Officer-specific configuration
+### **Complete Page and Component Breakdown**
 
-### **Key Components**
-- `police/src/components/VehicleScanner.tsx` - Camera-based plate scanning (lazy-loaded)
-- `police/src/components/ViolationFlagging.tsx` - Violation creation workflow
-- `police/src/components/ViolationsManagement.tsx` - Violation tracking
-- `police/src/components/VehicleInformationAccess.tsx` - Vehicle data lookup
-- `police/src/components/FieldReporting.tsx` - Report generation
-- `police/src/hooks/useAuth.ts` - Supabase authentication integration
+#### **Dashboard & Overview**
+- **`police/src/components/OverviewDashboard.tsx`**
+  - **Purpose**: Police officer activity summary and daily metrics
+  - **Features**: Daily scan counts, violations flagged, pending submissions, performance metrics
+  - **User Journey**: Starting point for officers to review daily activity and pending tasks
+  - **Technical Implementation**: Dashboard with officer-specific KPIs and quick actions
+
+#### **Vehicle Scanning & Detection**
+- **`police/src/components/VehicleScanner.tsx`** (Lazy-loaded)
+  - **Purpose**: Primary tool for real-time license plate detection and scanning
+  - **Features**:
+    - Live camera view with detection overlay
+    - Start/stop scanning controls with 30-second timeout
+    - Continuous scanning (1-second intervals) with confidence threshold (>0.7)
+    - Auto-population of scan results (plate number, vehicle model, owner, status)
+    - Manual plate lookup input for offline scenarios
+    - Evidence capture via frame grabbing
+    - Detection confidence validation and result display
+  - **User Journey**: Officer activates camera, scans vehicles in field, captures evidence, reviews results
+  - **Technical Implementation**:
+    - Integrates `useCamera` hook for robust camera management
+    - Uses `plateDetector` for OpenCV-based plate recognition
+    - Lazy-loaded to avoid heavy OpenCV bundle impact
+    - Confidence-based result validation and timeout handling
+
+#### **Camera Management Hook**
+- **`police/src/hooks/useCamera.ts`**
+  - **Purpose**: Comprehensive camera access and management
+  - **Features**:
+    - HTTPS requirement validation and browser compatibility checks
+    - Permissions API integration for camera access
+    - High-resolution camera initialization with fallback (1280x720 → 640x480)
+    - Stream management with proper cleanup
+    - Frame capture for evidence documentation
+    - Detailed error handling (NotAllowedError, NotFoundError, OverconstrainedError)
+  - **Technical Implementation**:
+    - getUserMedia with constraint fallback
+    - Permissions state monitoring and change events
+    - Canvas-based frame capture from video stream
+    - Mobile-optimized with environment camera preference
+
+#### **Plate Detection System**
+- **`police/src/utils/plateDetection.ts`**
+  - **Purpose**: Core plate detection and OCR processing
+  - **Features**: Asynchronous initialization, plate detection with confidence scoring, resource cleanup
+  - **Technical Implementation**: OpenCV.js integration with initialize(), detectPlate(), cleanup() lifecycle
+  - **Integration**: Returns PlateDetectionResult with plateNumber and confidence values
+
+#### **Violation Management**
+- **`police/src/components/ViolationFlagging.tsx`**
+  - **Purpose**: Create and submit traffic violation reports
+  - **Features**: Violation type selection, evidence attachment, location recording, officer notes, auto-populated vehicle data from scans
+  - **User Journey**: Officer flags violations discovered during scanning or patrol
+  - **Technical Implementation**: Form-based workflow with evidence integration and backend submission
+
+- **`police/src/components/ViolationsManagement.tsx`**
+  - **Purpose**: Track and manage submitted violation records
+  - **Features**: Violation status tracking, submission history, supervisor review status, evidence review
+  - **User Journey**: Officer monitors status of submitted violations and reviews feedback
+  - **Technical Implementation**: List management with status filtering and detail views
+
+#### **Vehicle Information Access**
+- **`police/src/components/VehicleInformationAccess.tsx`**
+  - **Purpose**: Manual vehicle lookup and information retrieval
+  - **Features**: Plate number input, vehicle details display, owner information, registration status, violation history
+  - **User Journey**: Officer performs manual lookups when camera scanning unavailable
+  - **Technical Implementation**: API integration with police/unified API for vehicle data retrieval
+
+#### **Field Operations**
+- **`police/src/components/FieldReporting.tsx`**
+  - **Purpose**: Generate comprehensive field reports and incident documentation
+  - **Features**: Report templates, incident details, evidence compilation, location tracking, time stamping
+  - **User Journey**: Officer creates detailed reports of field activities and incidents
+  - **Technical Implementation**: Form-based reporting with template selection and evidence integration
+
+#### **Settings & Configuration**
+- **`police/src/components/PersonalSettings.tsx`**
+  - **Purpose**: Officer-specific application preferences and configuration
+  - **Features**: Notification preferences, camera settings, scan sensitivity, report templates
+  - **User Journey**: Officer customizes application for personal workflow preferences
+  - **Technical Implementation**: Settings persistence with local storage integration
+
+#### **Navigation & Layout**
+- **`police/src/components/Sidebar.tsx`**
+  - **Purpose**: Police application navigation menu
+  - **Features**: Navigation between Overview, Scanner, Vehicle Access, Reporting, Violations, Settings
+  - **User Journey**: Primary navigation optimized for mobile field use
+  - **Technical Implementation**: Responsive design with touch-friendly controls
+
+### **Authentication & Integration**
+- **`police/src/hooks/useAuth.ts`**
+  - **Purpose**: Supabase-based authentication for police officers
+  - **Features**: Sign-in/sign-out, session management, user state monitoring
+  - **Technical Implementation**: Supabase client integration with session persistence
+
+### **Police Officer Workflow**
+1. **Authentication**: Officer logs in via main LoginPage using Supabase credentials
+2. **Overview**: Lands on OverviewDashboard to review daily metrics and pending tasks
+3. **Field Operations**:
+   - **Vehicle Scanning**: Use VehicleScanner for real-time plate detection
+   - **Manual Lookup**: Use VehicleInformationAccess for manual searches
+   - **Violation Processing**: Flag violations via ViolationFlagging with evidence
+   - **Report Generation**: Create field reports via FieldReporting
+4. **Management**: Monitor violation status via ViolationsManagement
+5. **Configuration**: Adjust settings via PersonalSettings for optimal field performance
+
+### **Unique Technical Features**
+- **Camera Integration**: Robust camera management with HTTPS validation and permission handling
+- **Plate Detection Pipeline**: OpenCV-based detection with confidence thresholds and initialization lifecycle
+- **Evidence Capture**: Frame capturing from video stream for violation documentation
+- **Offline Support**: Mock data and fallback scenarios for development and limited connectivity
+- **Performance Optimization**: Lazy loading of heavy components to reduce initial bundle size
+- **Error Recovery**: Global error boundary with page refresh capability for field reliability
 
 ### **Architecture Patterns**
-- **Performance Optimization**: Lazy loading for heavy components (OpenCV scanner)
-- **Error Handling**: Global error boundary with fallback UI
-- **Authentication**: Supabase-based authentication system
-- **Camera Integration**: WebRTC camera access with OpenCV processing
-- **UI Framework**: Mobile-optimized responsive design for field use
+- **Performance Optimization**: Lazy loading for heavy OpenCV components
+- **Error Handling**: Global error boundary with fallback UI and recovery options
+- **Authentication**: Supabase-based authentication with session management
+- **Camera Integration**: WebRTC camera access with OpenCV processing pipeline
+- **UI Framework**: Mobile-optimized responsive design for field use with touch-friendly controls
+- **Data Persistence**: Supabase integration with offline capabilities and mock data fallbacks
 
 ---
 
