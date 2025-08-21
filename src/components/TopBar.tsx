@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Bell, User } from 'lucide-react';
 import NotificationsModal from './NotificationsModal';
 import UserProfileModal from './UserProfileModal';
+import { useData } from '../contexts/DataContext';
 
 interface TopBarProps {
   title: string;
