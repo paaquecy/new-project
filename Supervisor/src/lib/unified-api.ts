@@ -367,73 +367,14 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/violations') && options.method === 'GET') {
-      const allMockViolations = [
-        {
-          id: 'mock-violation-1',
-          plate_number: 'GS-1657-20',
-          vehicle_id: '1',
-          officer_id: '1',
-          violation_type: 'Speeding',
-          violation_details: 'Exceeding speed limit by 15 mph',
-          location: 'Main Street, Accra',
-          status: 'pending',
-          evidence_urls: ['https://example.com/evidence1.jpg'],
-          fine_amount: 100,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-violation-2',
-          plate_number: 'XYZ789',
-          vehicle_id: '2',
-          officer_id: '1',
-          violation_type: 'Parking',
-          violation_details: 'Parking in no parking zone',
-          location: 'High Street, Manchester',
-          status: 'pending',
-          evidence_urls: ['https://example.com/evidence2.jpg'],
-          fine_amount: 50,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'mock-violation-3',
-          plate_number: 'DEF456',
-          vehicle_id: '3',
-          officer_id: '2',
-          violation_type: 'Red Light',
-          violation_details: 'Running red light at intersection',
-          location: 'Oxford Street, Birmingham',
-          status: 'approved',
-          evidence_urls: ['https://example.com/evidence3.jpg'],
-          fine_amount: 75,
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-          updated_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'mock-violation-4',
-          plate_number: 'ABC123',
-          vehicle_id: '4',
-          officer_id: '2',
-          violation_type: 'Illegal Parking',
-          violation_details: 'Parked in disabled spot without permit',
-          location: 'Shopping Mall, Accra',
-          status: 'rejected',
-          evidence_urls: ['https://example.com/evidence4.jpg'],
-          fine_amount: 150,
-          created_at: new Date(Date.now() - 259200000).toISOString(),
-          updated_at: new Date(Date.now() - 172800000).toISOString()
-        }
-      ];
-
       // Parse query parameters from endpoint
       const url = new URL(endpoint, 'http://localhost');
       const statusParam = url.searchParams.get('status');
 
       // Filter violations by status if provided
-      let filteredViolations = allMockViolations;
+      let filteredViolations = mockViolationsStore;
       if (statusParam) {
-        filteredViolations = allMockViolations.filter(v => v.status === statusParam);
+        filteredViolations = mockViolationsStore.filter(v => v.status === statusParam);
       }
 
       return { data: filteredViolations as T };
