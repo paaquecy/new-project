@@ -58,18 +58,28 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
   const getTimeBasedGreeting = () => {
     const currentHour = currentTime.getHours();
     const currentMinutes = currentTime.getMinutes();
+    const timeString = currentTime.toLocaleTimeString();
+
+    let greeting;
 
     // More detailed time-based greetings
     if (currentHour >= 5 && currentHour < 12) {
-      return 'Good Morning, Officer!';
+      greeting = 'Good Morning, Officer!';
     } else if (currentHour >= 12 && currentHour < 17) {
-      return 'Good Afternoon, Officer!';
+      greeting = 'Good Afternoon, Officer!';
     } else if (currentHour >= 17 && currentHour < 22) {
-      return 'Good Evening, Officer!';
+      greeting = 'Good Evening, Officer!';
     } else {
       // Late night/early morning (10 PM - 5 AM)
-      return 'Good Night, Officer!';
+      greeting = 'Good Night, Officer!';
     }
+
+    // Log greeting changes for testing (can be removed in production)
+    if (activeNav === 'overview') {
+      console.log(`🕐 Current time: ${timeString} | Greeting: ${greeting}`);
+    }
+
+    return greeting;
   };
 
   const getPageTitle = () => {
