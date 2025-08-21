@@ -409,7 +409,7 @@ const VehicleScanner = () => {
   }, [cameraActive, scanInterval, stopCamera, lookupVehicle, detectorType]);
 
   const handleStartScan = async () => {
-    console.log('🎬 handleStartScan called');
+    console.log('���� handleStartScan called');
     console.log('📊 Current states:', { cameraActive, cameraLoading, cameraError, permissionStatus, isScanning, scanInterval: !!scanInterval });
 
     try {
@@ -621,19 +621,17 @@ const VehicleScanner = () => {
         // Try detection on the image element
         switch (detectorType) {
           case 'gemini':
-            result = await geminiPlateDetector.detectPlate(img);
+          case 'yolo':
+            result = await yoloPlateDetector.detectPlate(img);
             break;
           case 'custom':
             result = await customYOLODetector.detectPlate(img);
-            break;
-          case 'yolo':
-            result = await yoloPlateDetector.detectPlate(img);
             break;
           case 'simple':
             result = await simplePlateDetector.detectPlate(img);
             break;
           default:
-            result = await geminiPlateDetector.detectPlate(img);
+            result = await yoloPlateDetector.detectPlate(img);
         }
       }
 
