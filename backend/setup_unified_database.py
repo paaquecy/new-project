@@ -181,10 +181,10 @@ async def create_unified_schema():
         
         sample_user = {
             "username": "dvla_admin",
-            "email": "admin@dvla.gov.uk",
+            "email": "admin@dvla.gov.gh",
             "password_hash": hashed_password,
             "full_name": "DVLA Administrator",
-            "phone": "+44 300 790 6801",
+            "phone": "+233201234571",
             "role": "admin"
         }
         
@@ -196,21 +196,21 @@ async def create_unified_schema():
         print("Creating sample vehicle...")
         
         sample_vehicle = {
-            "reg_number": "AB12 CDE",
+            "reg_number": "AS-4235-24",
             "manufacturer": "Toyota",
             "model": "Corolla",
             "vehicle_type": "Hatchback",
             "chassis_number": "JTDBL40E199000001",
             "year_of_manufacture": 2023,
             "vin": "JTDBL40E199000001",
-            "license_plate": "AB12 CDE",
+            "license_plate": "AS-4235-24",
             "color": "Silver",
             "use_type": "Private",
             "date_of_entry": "2024-01-15",
-            "owner_name": "John Smith",
-            "owner_address": "123 High Street, London, UK",
-            "owner_phone": "+44 7700 900123",
-            "owner_email": "john.smith@example.com",
+            "owner_name": "Mark Anim",
+            "owner_address": "123 High Street, Accra, GH",
+            "owner_phone": "+233201234571",
+            "owner_email": "Animmak@gmail.com",
             "created_by": 1
         }
         

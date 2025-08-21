@@ -238,7 +238,7 @@ export class PlateDetector {
   private isValidPlateFormat(text: string): boolean {
     // Common license plate patterns
     const patterns = [
-      /^[A-Z]{3}\s?\d{3}$/,  // ABC 123
+      /^[A-Z]{3}\s?\d{3}$/,  // AS-4235-24
       /^[A-Z]{2}\s?\d{4}$/,  // AB 1234
       /^\d{3}\s?[A-Z]{3}$/,  // 123 ABC
       /^[A-Z]\d{2}\s?[A-Z]{3}$/, // A12 BCD

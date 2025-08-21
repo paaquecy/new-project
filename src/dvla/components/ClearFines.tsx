@@ -43,12 +43,12 @@ const ClearFines: React.FC = () => {
     fineId: 'FINE-001234',
     offenseDescription: 'Speeding (45mph in 30mph zone)',
     dateTime: '26/10/2023, 10:30 AM',
-    location: 'High Street, London SW1A 0AA',
+    location: 'High Street, Accra SW1A 0AA',
     amount: '150.00',
     paymentStatus: 'Unpaid',
-    vehiclePlate: 'AB12 CDE',
+    vehiclePlate: 'GT-1442-20',
     vehicleMakeModel: 'Toyota Camry',
-    ownerName: 'Jane Doe',
+    ownerName: 'Ayam Idumba',
     ownerContact: '+44 7700 900123, jane.doe@example.com',
     paymentMethod: '',
     markedAsCleared: false,
@@ -62,8 +62,8 @@ const ClearFines: React.FC = () => {
     {
       id: '1',
       timestamp: '2023-10-26 11:45 AM',
-      action: 'Fine details updated by John Doe',
-      user: 'John Doe'
+      action: 'Fine details updated by John Mensah',
+      user: 'John Mensah'
     },
     {
       id: '2',
@@ -209,7 +209,7 @@ const ClearFines: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by Plate or Fine ID (e.g., AB12 CDE or FINE-001)"
+              placeholder="Search by Plate or Fine ID (e.g., GT-1442-20 or FINE-001)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base ${
@@ -564,7 +564,7 @@ const ClearFines: React.FC = () => {
                 <p className={`text-sm transition-colors duration-200 ${
                   darkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>
-                  2023-10-26 11:45 AM by John Doe
+                  2023-10-26 11:45 AM by John Mensah
                 </p>
               </div>
               

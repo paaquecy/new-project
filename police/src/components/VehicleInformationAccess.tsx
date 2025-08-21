@@ -35,7 +35,7 @@ const VehicleInformationAccess = () => {
           make: 'Honda',
           model: 'Civic',
           year: '2020',
-          owner: 'John Doe',
+          owner: 'John Mensah',
           registrationStatus: 'Active',
           insuranceStatus: 'Valid',
           outstandingViolations: 2
@@ -213,7 +213,7 @@ const VehicleInformationAccess = () => {
           Quick Lookup Examples
         </h4>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-3">
-          {['ABC 123', 'XYZ 789', 'DEF 456', 'GHI 012'].map((plate, index) => (
+          {['AS-4235-24', 'ER-2435-23', 'BA-8693-19', 'BA-8612-19'].map((plate, index) => (
             <button
               key={index}
               onClick={() => setLookupInput(plate)}

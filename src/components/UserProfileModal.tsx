@@ -6,7 +6,7 @@ interface UserProfileModalProps {
 }
 
 const initialProfile = {
-  name: 'John Doe',
+  name: 'John Mensah',
   email: 'john.doe@example.com',
   role: 'Administrator',
   contact: '+1-555-0123',

@@ -260,7 +260,7 @@ export const initializeDemoAuditLogs = (): void => {
         userId: 'admin-001',
         app: 'main',
         action: 'User Account Approved',
-        details: 'Approved police officer account for John Doe',
+        details: 'Approved police officer account for John Mensah',
         severity: 'high',
         category: 'approval'
       }

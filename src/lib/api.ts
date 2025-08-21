@@ -86,7 +86,7 @@ class ApiClient {
       const user: User = {
         id: '1',
         email: email,
-        full_name: 'Officer John Smith',
+        full_name: 'Officer John Mensah',
         badge_number: 'P001',
         rank: 'Officer',
         department: 'Traffic Division',

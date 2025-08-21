@@ -73,7 +73,7 @@ const SecurityManagement: React.FC = () => {
       timestamp: '2024-04-23 10:28:01',
       user: 'System Admin',
       action: 'Updated User Role',
-      details: 'User: John Doe, Role: Data Entry'
+      details: 'User: John Mensah, Role: Data Entry'
     },
     {
       id: 'LOG003',

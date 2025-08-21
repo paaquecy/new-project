@@ -64,7 +64,7 @@ const VehicleScanner = () => {
         const mockResults = {
           plateNumber: result.plateNumber,
           vehicleModel: '2020 Toyota Camry',
-          owner: 'Jane Doe',
+          owner: 'Ayam Idumba',
           status: Math.random() > 0.5 ? 'No Violations' : 'Outstanding Parking Ticket',
           statusType: Math.random() > 0.5 ? 'clean' : 'violation'
         };
@@ -122,7 +122,7 @@ const VehicleScanner = () => {
         const mockResults = {
           plateNumber: plateInput.toUpperCase(),
           vehicleModel: '2020 Toyota Camry',
-          owner: 'Jane Doe',
+          owner: 'Ayam Idumba',
           status: 'Outstanding Parking Ticket',
           statusType: 'violation'
         };

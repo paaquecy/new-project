@@ -14,7 +14,7 @@ const ActivityCard: React.FC = () => {
   const activities: Activity[] = [
     {
       id: '1',
-      description: 'Vehicle ABC123 registered by John Smith.',
+      description: 'Vehicle GS-1657-20 registered by John Mensah.',
       timestamp: '5 min ago'
     },
     {
@@ -29,7 +29,7 @@ const ActivityCard: React.FC = () => {
     },
     {
       id: '4',
-      description: 'New user account created: Jane Doe.',
+      description: 'New user account created: Ayam Idumba.',
       timestamp: 'Yesterday'
     }
   ];

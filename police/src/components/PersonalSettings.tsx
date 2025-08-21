@@ -15,7 +15,7 @@ import {
 const PersonalSettings = () => {
   // Profile Settings State
   const [profileData, setProfileData] = useState({
-    fullName: 'John Doe',
+    fullName: 'John Mensah',
     email: 'john.doe@police.gov',
     badgeNumber: 'B001',
     rank: 'Officer',

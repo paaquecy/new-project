@@ -181,7 +181,7 @@ CREATE TRIGGER update_violations_updated_at
 
 -- Insert sample data
 INSERT INTO officers (id, email, full_name, badge_number, rank, department) VALUES
-  ('550e8400-e29b-41d4-a716-446655440000', 'officer.doe@police.gov.gh', 'Officer John Doe', 'P001234', 'Sergeant', 'Traffic Division'),
+  ('550e8400-e29b-41d4-a716-446655440000', 'officer.doe@police.gov.gh', 'Officer John Mensah', 'P001234', 'Sergeant', 'Traffic Division'),
   ('550e8400-e29b-41d4-a716-446655440001', 'officer.smith@police.gov.gh', 'Officer Jane Smith', 'P001235', 'Officer', 'Patrol Division')
 ON CONFLICT (email) DO NOTHING;
 

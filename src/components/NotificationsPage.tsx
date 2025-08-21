@@ -45,7 +45,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate, curre
       id: '2',
       type: 'approval',
       title: 'Approval Confirmed',
-      description: 'Pending approval for user \'Jane Doe\' has been processed.',
+      description: 'Pending approval for user \'Ayam Idumba\' has been processed.',
       timestamp: 'Yesterday',
       read: false,
     },
@@ -162,7 +162,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate, curre
                 </span>
               </button>
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-900">John Doe</span>
+                <span className="text-sm font-medium text-gray-900">John Mensah</span>
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <User size={16} className="text-blue-600" />
                 </div>

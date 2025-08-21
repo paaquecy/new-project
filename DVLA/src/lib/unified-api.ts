@@ -214,21 +214,21 @@ class UnifiedAPIClient {
       const mockVehicles = [
         {
           id: 1,
-          reg_number: 'AB12 CDE',
+          reg_number: 'AS-4235-24',
           manufacturer: 'Toyota',
           model: 'Corolla',
           vehicle_type: 'Hatchback',
           chassis_number: 'JTDBL40E199000001',
           year_of_manufacture: 2023,
           vin: 'JTDBL40E199000001',
-          license_plate: 'AB12 CDE',
+          license_plate: 'AS-4235-24',
           color: 'Silver',
           use_type: 'Private',
           date_of_entry: '2024-01-15',
-          owner_name: 'John Smith',
-          owner_address: '123 High Street, London, UK',
-          owner_phone: '+44 7700 900123',
-          owner_email: 'john.smith@example.com',
+          owner_name: 'Mark Anim',
+          owner_address: '78 High Street, Accra, GH',
+          owner_phone: '+233201234571',
+          owner_email: 'Animmak@gmail.com',
           status: 'active'
         }
       ];
@@ -288,14 +288,14 @@ class UnifiedAPIClient {
       return {
         data: {
           id: '1',
-          plate_number: 'ABC123',
+          plate_number: 'VR-9087-22',
           vin: 'TEST123456789',
           make: 'Toyota',
           model: 'Corolla',
           year: 2023,
           color: 'Blue',
-          owner_name: 'John Smith',
-          owner_address: '123 Test Street',
+          owner_name: 'John Mensah',
+          owner_address: '13th Track Street',
           registration_status: 'Valid',
           registration_expiry: '2025-12-31',
           insurance_status: 'Valid',
@@ -310,12 +310,12 @@ class UnifiedAPIClient {
       const mockViolations = [
         {
           id: 'mock-violation-1',
-          plate_number: 'ABC123',
+          plate_number: 'GS-0973-18',
           vehicle_id: '1',
           officer_id: '1',
           violation_type: 'Speeding',
           violation_details: 'Exceeding speed limit by 15 mph',
-          location: 'Main Street, London',
+          location: 'Adabraka Street, Accra',
           status: 'pending',
           evidence_urls: ['https://example.com/evidence1.jpg'],
           fine_amount: 100,
@@ -324,7 +324,7 @@ class UnifiedAPIClient {
         },
         {
           id: 'mock-violation-2',
-          plate_number: 'XYZ789',
+          plate_number: 'GW-5586-14',
           vehicle_id: '2',
           officer_id: '1',
           violation_type: 'Parking',
@@ -338,12 +338,12 @@ class UnifiedAPIClient {
         },
         {
           id: 'mock-violation-3',
-          plate_number: 'DEF456',
+          plate_number: 'NE-2387-17',
           vehicle_id: '3',
           officer_id: '2',
           violation_type: 'Red Light',
           violation_details: 'Running red light at intersection',
-          location: 'Oxford Street, Birmingham',
+          location: 'Oxford Street, Accra',
           status: 'approved',
           evidence_urls: ['https://example.com/evidence3.jpg'],
           fine_amount: 75,
@@ -359,7 +359,7 @@ class UnifiedAPIClient {
       return {
         data: {
           id: 'mock-violation-' + Date.now(),
-          plate_number: 'ABC123',
+          plate_number: 'ER-2386-22',
           violation_type: 'Speeding',
           status: 'pending',
           created_at: new Date().toISOString()

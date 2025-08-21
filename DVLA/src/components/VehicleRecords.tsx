@@ -23,34 +23,34 @@ const VehicleRecords: React.FC = () => {
   const vehicleRecords: VehicleRecord[] = [
     {
       id: '1',
-      licensePlate: 'ABC 123',
+      licensePlate: 'AS-4235-24',
       make: 'Toyota',
       model: 'Camry',
-      owner: 'Jane Doe',
+      owner: 'Ayam Idumba',
       status: 'Active'
     },
     {
       id: '2',
-      licensePlate: 'XYZ 789',
+      licensePlate: 'ER-2435-23',
       make: 'Honda',
       model: 'Civic',
-      owner: 'Robert Smith',
+      owner: 'Yaw Asare',
       status: 'Expired'
     },
     {
       id: '3',
-      licensePlate: 'DEF 456',
+      licensePlate: 'NW-3456-23',
       make: 'Ford',
       model: 'F-150',
-      owner: 'Alice Johnson',
+      owner: 'Lukensah',
       status: 'Active'
     },
     {
       id: '4',
-      licensePlate: 'GHI 012',
+      licensePlate: 'GN-7287-19',
       make: 'BMW',
       model: 'X5',
-      owner: 'Michael Brown',
+      owner: 'Kwame Mensah',
       status: 'Pending'
     }
   ];

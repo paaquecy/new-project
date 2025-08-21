@@ -561,7 +561,7 @@ class UnifiedAPIClient {
       return {
         data: {
           id: 'mock-violation-' + Date.now(),
-          plate_number: 'ABC123',
+          plate_number: 'GS-1657-20',
           violation_type: 'Speeding',
           status: 'pending',
           created_at: new Date().toISOString()

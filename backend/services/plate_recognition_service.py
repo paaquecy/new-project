@@ -65,10 +65,10 @@ class PlateRecognitionService:
             'GA': 'Greater Accra (Older)'
         }
         
-        # Load pre-trained model for plate detection (if available)
+        # Load pre-trained model for plate detection 
         self.plate_cascade = None
         try:
-            # You can download a pre-trained cascade classifier for license plate detection
+            
             # self.plate_cascade = cv2.CascadeClassifier('models/haarcascade_russian_plate_number.xml')
             pass
         except:

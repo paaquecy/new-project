@@ -95,18 +95,18 @@ def setup_sample_data():
         # Sample vehicles
         sample_vehicles = [
             {
-                'plate_number': 'ABC123',
-                'owner_name': 'John Doe',
-                'owner_email': 'john.doe@example.com',
+                'plate_number': 'AS-4235-24',
+                'owner_name': 'Mark Anim',
+                'owner_email': 'Animmaak@gmail.com',
                 'vehicle_type': 'Sedan',
                 'registration_date': '2024-01-15',
                 'expiry_date': '2025-01-15',
                 'status': VehicleStatus.ACTIVE
             },
             {
-                'plate_number': 'XYZ789',
-                'owner_name': 'Jane Smith',
-                'owner_email': 'jane.smith@example.com',
+                'plate_number': 'ER-2435-23,
+                'owner_name': 'Ayam Idumba',
+                'owner_email': 'AyamIdumba@gmail.com',
                 'vehicle_type': 'SUV',
                 'registration_date': '2023-06-20',
                 'expiry_date': '2024-06-20',
@@ -117,7 +117,7 @@ def setup_sample_data():
         # Sample violations
         sample_violations = [
             {
-                'plate_number': 'ABC123',
+                'plate_number': 'NW-3456-23',
                 'violation_type': 'Speeding',
                 'description': 'Exceeded speed limit by 20 km/h',
                 'location': 'Main Street, Downtown',
@@ -132,7 +132,7 @@ def setup_sample_data():
         sample_approvals = [
             {
                 'user_name': 'New Police Officer',
-                'email': 'new.police@example.com',
+                'email': 'Lukemensah@example.com',
                 'role': 'Police Officer',
                 'request_date': '2024-01-25',
                 'account_type': AccountType.POLICE,

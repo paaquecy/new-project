@@ -26,15 +26,15 @@ const OverviewDashboard = () => {
   ];
 
   const recentActivities = [
-    { action: 'Scanned plate ABC 123', time: '10 min ago' },
-    { action: 'Flagged Overspeeding on XYZ 789', time: '35 min ago' },
-    { action: 'Resolved case for DEF 456', time: '1 hour ago' },
-    { action: 'Scanned plate GHI 012', time: '2 hours ago' }
+    { action: 'Scanned plate AS-4235-24', time: '10 min ago' },
+    { action: 'Flagged Overspeeding on ER-2435-23', time: '35 min ago' },
+    { action: 'Resolved case for BA-8693-19', time: '1 hour ago' },
+    { action: 'Scanned plate BA-8612-19', time: '2 hours ago' }
   ];
 
   const pendingViolations = [
-    { violation: 'Illegal Parking JKL 345', status: 'Pending' },
-    { violation: 'Expired License MNO 678', status: 'Pending' },
+    { violation: 'Illegal Parking ER-8612-19', status: 'Pending' },
+    { violation: 'Expired License GA-5092-19', status: 'Pending' },
     { violation: 'No Insurance PQR 901', status: 'Pending' }
   ];
 

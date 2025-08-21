@@ -80,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <User className="w-4 lg:w-6 h-4 lg:h-6 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs lg:text-sm font-semibold text-gray-800 truncate">Officer John Doe</p>
+            <p className="text-xs lg:text-sm font-semibold text-gray-800 truncate">Officer John Mensah</p>
             <p className="text-xs text-gray-500 truncate">Patrol Officer</p>
           </div>
         </div>

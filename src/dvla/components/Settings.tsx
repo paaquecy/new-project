@@ -47,7 +47,7 @@ const Settings: React.FC = () => {
   const { darkMode, setDarkMode: setGlobalDarkMode } = useTheme();
   const [activeSubMenu, setActiveSubMenu] = useState('general');
   const [language, setLanguage] = useState('English');
-  const [timezone, setTimezone] = useState('GMT+0:00 London');
+  const [timezone, setTimezone] = useState('GMT+0:00 Accra');
   const [dataExportFormat, setDataExportFormat] = useState('CSV');
   const [automatedBackups, setAutomatedBackups] = useState(true);
   
@@ -110,7 +110,7 @@ const Settings: React.FC = () => {
 
   const languageOptions = ['English', 'Spanish', 'French', 'German', 'Portuguese'];
   const timezoneOptions = [
-    'GMT+0:00 London',
+    'GMT+0:00 Accra',
     'GMT+1:00 Paris',
     'GMT+2:00 Berlin',
     'GMT-5:00 New York',
@@ -661,7 +661,7 @@ const Settings: React.FC = () => {
                 <User className="text-white" size={32} />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-600 mb-1">John Doe</p>
+                <p className="text-sm text-gray-600 mb-1">John Mensah</p>
                 <p className="text-xs text-gray-500">Administrator</p>
                 <button className="mt-2 inline-flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200">
                   <Camera size={14} />

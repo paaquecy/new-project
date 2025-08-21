@@ -26,25 +26,25 @@ const RegistrationRenewal: React.FC = () => {
   const renewalRecords: RenewalRecord[] = [
     {
       id: '1',
-      licensePlate: 'ABC 123',
+      licensePlate: 'AS-4235-24',
       make: 'Toyota',
       model: 'Camry',
-      owner: 'Jane Doe',
+      owner: 'Ayam Idumba',
       renewalDate: '2024-07-15',
       status: 'Due Soon'
     },
     {
       id: '2',
-      licensePlate: 'XYZ 789',
+      licensePlate: 'ER-2435-23',
       make: 'Honda',
       model: 'Civic',
-      owner: 'Robert Smith',
+      owner: 'Yaw Asare',
       renewalDate: '2024-05-20',
       status: 'Overdue'
     },
     {
       id: '3',
-      licensePlate: 'DEF 456',
+      licensePlate: 'BA-8693-19',
       make: 'Ford',
       model: 'F-150',
       owner: 'Alice Johnson',
@@ -53,7 +53,7 @@ const RegistrationRenewal: React.FC = () => {
     },
     {
       id: '4',
-      licensePlate: 'GHI 012',
+      licensePlate: 'BA-8612-19',
       make: 'BMW',
       model: 'X5',
       owner: 'Michael Brown',
@@ -62,7 +62,7 @@ const RegistrationRenewal: React.FC = () => {
     },
     {
       id: '5',
-      licensePlate: 'JKL 345',
+      licensePlate: 'ER-8612-19',
       make: 'Mercedes',
       model: 'C-Class',
       owner: 'Sarah Davis',

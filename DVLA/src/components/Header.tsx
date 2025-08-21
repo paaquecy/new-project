@@ -93,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, activeMenuItem }) => {
             <div>
               <p className={`font-semibold transition-colors duration-200 ${
                 darkMode ? 'text-gray-100' : 'text-gray-900'
-              }`}>John Doe</p>
+              }`}>John Mensah</p>
               <p className={`text-sm transition-colors duration-200 ${
                 darkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Administrator</p>

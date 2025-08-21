@@ -66,7 +66,7 @@ const VerifyLicense = () => {
 
       const mockLicenseData = {
         licenseNumber: licenseNumber,
-        holderName: 'John Smith',
+        holderName: 'John Mensah',
         dateOfBirth: '1985-03-15',
         address: '123 Main Street, City, State 12345',
         licenseClass: 'Class C - Regular Driver',

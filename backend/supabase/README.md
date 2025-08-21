@@ -81,9 +81,9 @@ users = supabase_client.get_users()
 
 # Create a new vehicle
 vehicle_data = {
-    'plate_number': 'ABC123',
-    'owner_name': 'John Doe',
-    'owner_email': 'john@example.com',
+    'plate_number': 'GS-1657-20',
+    'owner_name': 'Mark Anim',
+    'owner_email': 'Animmak@gmail.com.com',
     'vehicle_type': 'Sedan',
     'registration_date': '2024-01-15',
     'expiry_date': '2025-01-15',

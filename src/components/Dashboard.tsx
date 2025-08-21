@@ -59,7 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
   ];
 
   const pendingApprovals = [
-    { name: 'John Doe', email: 'john.doe@example.com' },
+    { name: 'John Mensah', email: 'john.doe@example.com' },
     { name: 'Jane Smith', email: 'jane.smith@example.com' },
     { name: 'Peter Jones', email: 'peter.jones@example.com' },
     { name: 'Sarah Wilson', email: 'sarah.wilson@example.com' }

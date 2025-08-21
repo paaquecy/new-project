@@ -14,22 +14,22 @@ const ActivityCard: React.FC = () => {
   const activities: Activity[] = [
     {
       id: '1',
-      description: 'Vehicle ABC123 registered by John Smith.',
+      description: 'Vehicle AS-4235-24 registered by John Mensah.',
       timestamp: '5 min ago'
     },
     {
       id: '2',
-      description: 'Removal processed for XY2793.',
+      description: 'Removal processed for ER-2435-23.',
       timestamp: '1 hour ago'
     },
     {
       id: '3',
-      description: 'Data updated for vehicle DEF456.',
+      description: 'Data updated for vehicle NW-3456-23.',
       timestamp: '3 hours ago'
     },
     {
       id: '4',
-      description: 'New user account created: Jane Doe.',
+      description: 'New user account created: Ayam Idumba.',
       timestamp: 'Yesterday'
     }
   ];

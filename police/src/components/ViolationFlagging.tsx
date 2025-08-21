@@ -103,7 +103,7 @@ const ViolationFlagging = () => {
             </label>
             <input
               type="text"
-              placeholder="e.g., ABC 123"
+              placeholder="e.g., AS-4235-24"
               value={formData.licensePlate}
               onChange={(e) => handleInputChange('licensePlate', e.target.value.toUpperCase())}
               className="w-full px-3 lg:px-4 py-2 lg:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-base lg:text-lg text-center transition-colors duration-200"
