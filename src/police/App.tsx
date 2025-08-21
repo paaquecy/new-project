@@ -62,7 +62,11 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
 
     let greeting;
 
-    // More detailed time-based greetings
+    // Time-based greetings based on 24-hour format:
+    // Morning: 5:00 AM - 11:59 AM
+    // Afternoon: 12:00 PM - 4:59 PM
+    // Evening: 5:00 PM - 9:59 PM
+    // Night: 10:00 PM - 4:59 AM
     if (currentHour >= 5 && currentHour < 12) {
       greeting = 'Good Morning, Officer!';
     } else if (currentHour >= 12 && currentHour < 17) {
