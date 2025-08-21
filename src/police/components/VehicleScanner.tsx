@@ -1143,39 +1143,6 @@ const VehicleScanner = () => {
                 </>
               )}
 
-              {/* Detector Status */}
-              {detectorStatus && (detectorType === 'yolo' || detectorType === 'gemini') && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border-t border-gray-200">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Detection System Status</h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span>Object Detection:</span>
-                      <span className={`px-2 py-1 rounded ${detectorStatus.hasObjectDetection ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {detectorStatus.hasObjectDetection ? 'COCO-SSD Active' : 'Fallback Mode'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>OCR Engine:</span>
-                      <span className={`px-2 py-1 rounded ${detectorStatus.hasOCR ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {detectorStatus.hasOCR ? 'Tesseract.js' : 'Basic Analysis'}
-                      </span>
-                    </div>
-                    {(!detectorStatus.hasObjectDetection || !detectorStatus.hasOCR) && (
-                      <button
-                        onClick={async () => {
-                          const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
-                          DetectionDiagnostics.logDiagnostics(diagnostics);
-                          const networkTest = await DetectionDiagnostics.runNetworkTest();
-                          console.log('🌐 Network test:', networkTest);
-                        }}
-                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                      >
-                        Run Diagnostics
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <button
