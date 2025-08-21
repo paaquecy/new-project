@@ -116,6 +116,7 @@ const VehicleScanner = () => {
         console.log('🚀 Initializing YOLOv8 + Enhanced OCR...');
         await yoloV8PlateDetector.initialize();
         const status = yoloV8PlateDetector.getStatus();
+        setDetectorStatus(status);
         console.log('✅ YOLOv8 + Enhanced OCR initialized:', status);
 
         if (!status.hasObjectDetection) {
@@ -632,7 +633,7 @@ const VehicleScanner = () => {
       // Process the detection result
       if (result && result.plateNumber) {
         console.log('✅ Plate detected from captured image:', result);
-        console.log('�� Detection confidence:', result.confidence);
+        console.log('📊 Detection confidence:', result.confidence);
 
         // Always show the detected plate number, regardless of confidence
         const detectedPlateNumber = result.plateNumber;
