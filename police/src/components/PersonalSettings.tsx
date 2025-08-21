@@ -16,11 +16,11 @@ const PersonalSettings = () => {
   // Profile Settings State
   const [profileData, setProfileData] = useState({
     fullName: 'John Mensah',
-    email: 'john.doe@police.gov',
+    email: 'johnmensah@police.gov',
     badgeNumber: 'B001',
     rank: 'Officer',
     department: 'Traffic Division',
-    phone: '+1 (555) 123-4567',
+    phone: '+233 55 24 9824',
     address: '123 Police Station Rd, City, State 12345'
   });
 

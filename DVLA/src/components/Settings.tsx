@@ -309,7 +309,7 @@ const Settings: React.FC = () => {
             </label>
             <input
               type="tel"
-              value="+1 (555) 123-4567"
+              value="+233 55 24 9824"
               readOnly
               className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
             />

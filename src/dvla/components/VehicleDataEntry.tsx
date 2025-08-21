@@ -940,7 +940,7 @@ const VehicleDataEntry: React.FC = () => {
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                placeholder="+1 (555) 123-4567"
+                placeholder="+233 55 24 9824"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>

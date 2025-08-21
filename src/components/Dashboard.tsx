@@ -43,25 +43,25 @@ const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
   ];
 
   const recentActivities = [
-    { description: 'Vehicle ABC-123 scanned.', time: '2 min ago' },
-    { description: 'Violation flagged for XYZ-789.', time: '15 min ago' },
-    { description: 'Vehicle DEF-456 scanned.', time: '1 hour ago' },
-    { description: 'Violation resolved for GHI-012.', time: '3 hours ago' },
+    { description: 'Vehicle OT-2387-21 scanned.', time: '2 min ago' },
+    { description: 'Violation flagged for BA-1387-18.', time: '15 min ago' },
+    { description: 'Vehicle GA-2887-22 scanned.', time: '1 hour ago' },
+    { description: 'Violation resolved for ER-2886-24.', time: '3 hours ago' },
     { description: 'New user registration: Sarah Wilson.', time: '5 hours ago' },
-    { description: 'Vehicle JKL-901 scanned.', time: '6 hours ago' }
+    { description: 'Vehicle GT-2686-22 scanned.', time: '6 hours ago' }
   ];
 
   const upcomingDeadlines = [
-    { violationId: '#1012', plateNumber: 'ABC-123', dueDate: '24/07/2024' },
-    { violationId: '#1015', plateNumber: 'DEF-456', dueDate: '28/07/2024' },
+    { violationId: '#1012', plateNumber: 'OT-2387-21', dueDate: '24/07/2024' },
+    { violationId: '#1015', plateNumber: 'GA-2887-22', dueDate: '28/07/2024' },
     { violationId: '#1018', plateNumber: 'GHI-789', dueDate: '01/08/2024' },
-    { violationId: '#1021', plateNumber: 'MNO-234', dueDate: '05/08/2024' }
+    { violationId: '#1021', plateNumber: 'GW-1786-14', dueDate: '05/08/2024' }
   ];
 
   const pendingApprovals = [
     { name: 'John Mensah', email: 'john.doe@example.com' },
-    { name: 'Jane Smith', email: 'jane.smith@example.com' },
-    { name: 'Peter Jones', email: 'peter.jones@example.com' },
+    { name: 'Afia Willson', email: 'jane.smith@example.com' },
+    { name: 'Peter Osei ', email: 'peter.jones@example.com' },
     { name: 'Sarah Wilson', email: 'sarah.wilson@example.com' }
   ];
 

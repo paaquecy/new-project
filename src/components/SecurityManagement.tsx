@@ -87,7 +87,7 @@ const SecurityManagement: React.FC = () => {
       timestamp: '2024-04-22 16:05:10',
       user: 'Data Entry',
       action: 'Added Vehicle Record',
-      details: 'Plate: ABC-123'
+      details: 'Plate: OT-2387-21'
     }
   ]);
 

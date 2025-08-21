@@ -27,7 +27,7 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
   const [violations, setViolations] = useState<Violation[]>([
     {
       id: 'VIO001',
-      plateNumber: 'ABC-123',
+      plateNumber: 'OT-2387-21',
       type: 'Speeding',
       dateTime: '2023-10-26 10:30 AM',
       location: 'Main St. & Oak Ave.',
@@ -35,7 +35,7 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
     },
     {
       id: 'VIO002',
-      plateNumber: 'XYZ-789',
+      plateNumber: 'BA-1387-18',
       type: 'Parking',
       dateTime: '2023-10-25 02:15 PM',
       location: 'Parking Lot B',
@@ -43,7 +43,7 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
     },
     {
       id: 'VIO003',
-      plateNumber: 'DEF-456',
+      plateNumber: 'GA-2887-22',
       type: 'Red Light',
       dateTime: '2023-10-24 09:00 AM',
       location: 'Elm St. & Pine Ave.',
@@ -51,7 +51,7 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
     },
     {
       id: 'VIO004',
-      plateNumber: 'GHI-012',
+      plateNumber: 'ER-2886-24',
       type: 'Speeding',
       dateTime: '2023-10-23 04:45 PM',
       location: 'Highway 101',

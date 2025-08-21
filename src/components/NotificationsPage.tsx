@@ -37,7 +37,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ onNavigate, curre
       id: '1',
       type: 'violation',
       title: 'Violation Alert',
-      description: 'Vehicle ABC-123 detected in restricted zone. Review required.',
+      description: 'Vehicle OT-2387-21 detected in restricted zone. Review required.',
       timestamp: '2 hours ago',
       read: false,
     },
