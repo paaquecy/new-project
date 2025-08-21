@@ -162,7 +162,8 @@ const History: React.FC = () => {
               className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
             >
               <option value="">All Status</option>
-              <option value="accepted">Accepted</option>
+              <option value="approved">Approved</option>
+              <option value="accepted">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>
