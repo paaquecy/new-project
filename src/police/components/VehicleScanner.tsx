@@ -1063,9 +1063,9 @@ const VehicleScanner = () => {
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'gemini' ? 'Gemini Vision AI' :
+                {detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
                  detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8 + EasyOCR' : 'Simple Detection'}
+                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple Detection'}
               </span>
             )}
           </h3>
