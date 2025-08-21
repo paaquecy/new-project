@@ -26,14 +26,16 @@ export class GeminiPlateDetector {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
-    if (!this.apiKey) {
-      console.warn('Gemini API key not found. Please set VITE_GEMINI_API_KEY environment variable.');
-      console.warn('For now, using fallback detection method.');
+    if (!this.apiKey || this.apiKey === 'test-key-for-debugging') {
+      console.warn('❌ Gemini API key not found or invalid.');
+      console.warn('📝 Please set VITE_GEMINI_API_KEY environment variable with a valid API key.');
+      console.warn('🔗 Get your API key from: https://aistudio.google.com/app/apikey');
+      console.warn('⚠️  For now, using fallback detection method (limited functionality).');
       this.isInitialized = true;
       return;
     }
 
-    console.log('Initializing Gemini Vision API for license plate detection...');
+    console.log('✅ Initializing Gemini Vision API for license plate detection...');
     this.isInitialized = true;
   }
 
