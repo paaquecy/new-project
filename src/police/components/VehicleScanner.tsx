@@ -173,9 +173,6 @@ const VehicleScanner = () => {
         case 'custom':
           customYOLODetector.cleanup();
           break;
-        case 'yolo':
-          yoloPlateDetector.cleanup();
-          break;
         case 'simple':
           simplePlateDetector.cleanup();
           break;
