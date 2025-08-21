@@ -31,13 +31,42 @@ export class YOLOv8PlateDetector {
       await tf.ready();
       console.log('✅ TensorFlow.js backend ready');
 
-      // Load COCO-SSD model for object detection
-      console.log('📦 Loading object detection model...');
-      this.objectDetectionModel = await cocoSsd.load({
-        base: 'mobilenet_v2', // Faster inference
-        modelUrl: undefined // Use default pre-trained model
-      });
-      console.log('✅ Object detection model loaded successfully');
+      // Check for problematic environments
+      const hasFullStory = typeof window !== 'undefined' &&
+                          ((window as any).FS ||
+                           document.querySelector('script[src*="fullstory"]') ||
+                           document.querySelector('script[src*="fs.js"]'));
+
+      const isDevelopment = typeof window !== 'undefined' &&
+                           (window.location.hostname === 'localhost' ||
+                            window.location.hostname.includes('127.0.0.1') ||
+                            window.location.hostname.includes('.dev') ||
+                            import.meta.env.DEV);
+
+      if (hasFullStory) {
+        console.warn('⚠️ FullStory detected - skipping external model loading to avoid conflicts');
+        this.objectDetectionModel = null;
+      } else {
+        // Load COCO-SSD model for object detection with timeout and error handling
+        console.log('📦 Loading object detection model...');
+        try {
+          // Add timeout to prevent hanging
+          const modelLoadPromise = cocoSsd.load({
+            base: 'mobilenet_v2', // Faster inference
+            modelUrl: undefined // Use default pre-trained model
+          });
+
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Model loading timeout')), 10000)
+          );
+
+          this.objectDetectionModel = await Promise.race([modelLoadPromise, timeoutPromise]);
+          console.log('✅ Object detection model loaded successfully');
+        } catch (modelError) {
+          console.warn('⚠️ Failed to load COCO-SSD model, using fallback detection:', modelError);
+          this.objectDetectionModel = null;
+        }
+      }
 
       // Initialize enhanced OCR worker
       console.log('🔤 Initializing enhanced OCR worker...');
@@ -458,7 +487,7 @@ export class YOLOv8PlateDetector {
     }
 
     try {
-      console.log('🔤 Performing advanced OCR...');
+      console.log('�� Performing advanced OCR...');
       
       const { data: { text, confidence } } = await this.ocrWorker.recognize(canvas);
       
