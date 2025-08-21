@@ -39,8 +39,17 @@ function PoliceAppContent({ onLogout }: PoliceAppProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Update time every minute to ensure greeting changes appropriately
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   const getTimeBasedGreeting = () => {
-    const currentHour = new Date().getHours();
+    const currentHour = currentTime.getHours();
 
     if (currentHour >= 5 && currentHour < 12) {
       return 'Good Morning, Officer!';
