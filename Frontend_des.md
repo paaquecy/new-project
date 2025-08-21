@@ -166,27 +166,115 @@ This project contains four distinct frontend applications, each designed for spe
 - **Target Users**: DVLA officers, vehicle registration clerks
 - **Location**: `DVLA/src/` directory
 
-### **Core Functionality**
-- **Vehicle Data Management**: Complete vehicle registration workflow
-- **Records Management**: Vehicle records listing and maintenance
-- **Registration Renewals**: Automated renewal processing system
-- **Fines Administration**: Fine clearance and management
-- **Data Analysis**: DVLA-specific analytics and reporting
-- **Settings Configuration**: DVLA portal customization
+### **Complete Page and Component Breakdown**
 
-### **Key Components**
-- `DVLA/src/components/VehicleDataEntry.tsx` - Vehicle registration forms
-- `DVLA/src/components/VehicleRecords.tsx` - Records management interface
-- `DVLA/src/components/RegistrationRenewal.tsx` - Renewal processing
-- `DVLA/src/components/ClearFines.tsx` - Fine management system
-- `DVLA/src/components/OverviewDashboard.tsx` - DVLA analytics dashboard
-- `DVLA/src/contexts/ThemeContext.tsx` - Dark mode support
+#### **Dashboard & Overview**
+- **`DVLA/src/components/OverviewDashboard.tsx`**
+  - **Purpose**: DVLA landing dashboard with comprehensive metrics
+  - **Features**: Aggregates StatCard, ActivityCard, ExpirationCard, DataQualityCard, SystemHealthCard, and StatusBar
+  - **User Journey**: Starting point for DVLA officers to assess workload and system health
+  - **Technical Implementation**: Composable dashboard with theme-aware layout
+
+- **`DVLA/src/components/StatCard.tsx`**
+  - **Purpose**: Individual KPI metric display component
+  - **Features**: Numeric metrics, trend indicators, comparative data
+  - **User Journey**: Provides quick metric overview within dashboard
+
+- **`DVLA/src/components/ActivityCard.tsx`**
+  - **Purpose**: Recent activity and workflow status display
+  - **Features**: Activity timeline, workflow status, pending actions
+  - **User Journey**: Shows current DVLA processing activity and bottlenecks
+
+- **`DVLA/src/components/SystemHealthCard.tsx`**
+  - **Purpose**: System status and health monitoring
+  - **Features**: System uptime, performance metrics, alert indicators
+  - **User Journey**: Monitors DVLA system operational status
+
+- **`DVLA/src/components/DataQualityCard.tsx`**
+  - **Purpose**: Data integrity and quality metrics
+  - **Features**: Data completeness, accuracy scores, validation status
+  - **User Journey**: Ensures data quality standards for vehicle registrations
+
+- **`DVLA/src/components/ExpirationCard.tsx`**
+  - **Purpose**: Registration expiration tracking and alerts
+  - **Features**: Upcoming expirations, renewal reminders, priority lists
+  - **User Journey**: Helps DVLA officers proactively manage renewal workflows
+
+#### **Navigation & Layout**
+- **`DVLA/src/components/Header.tsx`**
+  - **Purpose**: DVLA application header with navigation controls
+  - **Features**: Application title, user profile, search functionality, quick actions
+  - **User Journey**: Provides consistent navigation and user context
+
+- **`DVLA/src/components/Sidebar.tsx`**
+  - **Purpose**: DVLA-specific navigation menu
+  - **Features**: Navigation to Overview, Registration Renewal, Vehicle Records, Settings, Data Analysis
+  - **User Journey**: Primary navigation between DVLA functional areas
+  - **Technical Implementation**: Active route highlighting, responsive mobile behavior
+
+- **`DVLA/src/components/StatusBar.tsx`**
+  - **Purpose**: Real-time status and notification bar
+  - **Features**: System status, pending notifications, quick status updates
+  - **User Journey**: Provides immediate status awareness during operations
+
+#### **Vehicle Management**
+- **`DVLA/src/components/VehicleDataEntry.tsx`**
+  - **Purpose**: Comprehensive vehicle registration and data entry form
+  - **Features**: Owner information, vehicle specifications, payment processing, transaction ID handling, form validation
+  - **User Journey**: DVLA clerks register new vehicles or process renewals with integrated payment
+  - **Technical Implementation**: Long-form with validation, unified API submission, fallback behaviors
+
+- **`DVLA/src/components/VehicleRecords.tsx`**
+  - **Purpose**: Vehicle records search and management interface
+  - **Features**: Record search, vehicle history, owner details, status updates
+  - **User Journey**: DVLA officers search and review existing vehicle records
+  - **Technical Implementation**: Integrates with unified backend for record retrieval
+
+- **`DVLA/src/components/RegistrationRenewal.tsx`**
+  - **Purpose**: Vehicle registration renewal processing workflow
+  - **Features**: Renewal forms, fee calculations, payment processing, expiration updates
+  - **User Journey**: Handles complete renewal lifecycle from application to completion
+  - **Technical Implementation**: Renewal pipeline with payment integration
+
+#### **Financial & Compliance**
+- **`DVLA/src/components/ClearFines.tsx`**
+  - **Purpose**: Fine management and clearance system
+  - **Features**: Fine listings, payment reconciliation, clearance operations, payment reference tracking
+  - **User Journey**: DVLA clerks process fine payments and clear violation records
+  - **Technical Implementation**: Integrates with unified fine records system
+
+#### **Analytics & Data Management**
+- **`DVLA/src/components/DataAnalysis.tsx`**
+  - **Purpose**: DVLA-specific data analytics and reporting
+  - **Features**: Registration trends, processing metrics, performance analysis, custom reports
+  - **User Journey**: DVLA management reviews operational metrics and generates reports
+  - **Technical Implementation**: Analytics dashboard with data visualization capabilities
+
+#### **Configuration & Settings**
+- **`DVLA/src/components/Settings.tsx`**
+  - **Purpose**: DVLA application configuration and user preferences
+  - **Features**: User preferences, notification settings, workflow configurations
+  - **User Journey**: DVLA officers customize their application experience
+
+### **Navigation Flow & User Journey**
+1. **Login**: DVLA user authenticates via main LoginPage and enters DVLA application
+2. **Dashboard**: Lands on OverviewDashboard showing system metrics and pending work
+3. **Daily Operations**: Navigate via Sidebar to:
+   - **VehicleDataEntry**: Register new vehicles or process renewals
+   - **VehicleRecords**: Search and review existing records
+   - **ClearFines**: Process fine payments and clearances
+   - **RegistrationRenewal**: Handle renewal applications
+4. **Analysis**: Use DataAnalysis for operational insights and reporting
+5. **Configuration**: Adjust Settings for personalized workflow
 
 ### **Architecture Patterns**
-- **Navigation**: Internal state-driven navigation
-- **Theme Support**: Comprehensive dark mode with localStorage persistence
+- **Navigation**: Internal state-driven navigation with sidebar routing
+- **Theme Support**: Comprehensive dark mode with localStorage persistence via ThemeContext
 - **Integration**: Mounted by main application with theme inheritance
 - **UI Framework**: Tailwind CSS with responsive sidebar layout
+- **Data Integration**: Unified API for backend connectivity with offline fallback capabilities
+- **Form Management**: Comprehensive validation and error handling for data entry
+- **Dashboard Composition**: Modular card-based dashboard architecture
 
 ---
 
