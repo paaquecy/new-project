@@ -11,60 +11,68 @@ const History: React.FC = () => {
   const [violations, setViolations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Function to fetch violations
+  const fetchViolations = async () => {
+    setLoading(true);
+    try {
+      // Fetch both approved and rejected violations
+      const [approvedResponse, rejectedResponse] = await Promise.all([
+        unifiedAPI.getViolations(undefined, 'approved'),
+        unifiedAPI.getViolations(undefined, 'rejected')
+      ]);
+
+      const allViolations = [];
+
+      if (approvedResponse.data) {
+        allViolations.push(...approvedResponse.data.map(v => ({
+          id: v.id,
+          plateNumber: v.plate_number,
+          offense: v.violation_type,
+          description: v.violation_details,
+          capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+          dateTime: v.created_at || new Date().toISOString(),
+          status: v.status,
+          location: v.location || 'Location not specified',
+          reviewedBy: 'Supervisor',
+          reviewedAt: v.updated_at || v.created_at
+        })));
+      }
+
+      if (rejectedResponse.data) {
+        allViolations.push(...rejectedResponse.data.map(v => ({
+          id: v.id,
+          plateNumber: v.plate_number,
+          offense: v.violation_type,
+          description: v.violation_details,
+          capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
+          dateTime: v.created_at || new Date().toISOString(),
+          status: v.status,
+          location: v.location || 'Location not specified',
+          reviewedBy: 'Supervisor',
+          reviewedAt: v.updated_at || v.created_at,
+          rejectionReason: 'Rejected by supervisor'
+        })));
+      }
+
+      // Sort by review date (most recent first)
+      allViolations.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
+      setViolations(allViolations);
+    } catch (error) {
+      console.error('Failed to fetch violations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch reviewed violations on component mount
   useEffect(() => {
-    const fetchViolations = async () => {
-      try {
-        // Fetch both approved and rejected violations
-        const [approvedResponse, rejectedResponse] = await Promise.all([
-          unifiedAPI.getViolations(undefined, 'approved'),
-          unifiedAPI.getViolations(undefined, 'rejected')
-        ]);
-
-        const allViolations = [];
-
-        if (approvedResponse.data) {
-          allViolations.push(...approvedResponse.data.map(v => ({
-            id: v.id,
-            plateNumber: v.plate_number,
-            offense: v.violation_type,
-            description: v.violation_details,
-            capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
-            dateTime: v.created_at || new Date().toISOString(),
-            status: v.status,
-            location: v.location || 'Location not specified',
-            reviewedBy: 'Supervisor',
-            reviewedAt: v.updated_at || v.created_at
-          })));
-        }
-
-        if (rejectedResponse.data) {
-          allViolations.push(...rejectedResponse.data.map(v => ({
-            id: v.id,
-            plateNumber: v.plate_number,
-            offense: v.violation_type,
-            description: v.violation_details,
-            capturedBy: `Officer ${v.officer_id || 'Unknown'}`,
-            dateTime: v.created_at || new Date().toISOString(),
-            status: v.status,
-            location: v.location || 'Location not specified',
-            reviewedBy: 'Supervisor',
-            reviewedAt: v.updated_at || v.created_at,
-            rejectionReason: 'Rejected by supervisor'
-          })));
-        }
-
-        // Sort by review date (most recent first)
-        allViolations.sort((a, b) => new Date(b.reviewedAt).getTime() - new Date(a.reviewedAt).getTime());
-        setViolations(allViolations);
-      } catch (error) {
-        console.error('Failed to fetch violations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchViolations();
+  }, []);
+
+  // Set up polling to refresh data every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchViolations, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const reviewedViolations = violations;
