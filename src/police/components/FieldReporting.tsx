@@ -382,6 +382,42 @@ const FieldReporting = () => {
               />
             </div>
 
+            {/* Attached Media Display */}
+            {attachedMedia.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm lg:text-base font-medium text-gray-700">
+                  Attached Media ({attachedMedia.length})
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {attachedMedia.map((media) => (
+                    <div key={media.id} className="relative border border-gray-200 rounded-lg overflow-hidden">
+                      {media.type === 'image' ? (
+                        <img
+                          src={media.url}
+                          alt={media.name}
+                          className="w-full h-24 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+                          <Video className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeMedia(media.id)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <div className="p-2 bg-white">
+                        <p className="text-xs text-gray-600 truncate">{media.name}</p>
+                        <p className="text-xs text-gray-400">{formatFileSize(media.size)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="space-y-3 lg:space-y-4 pt-2 lg:pt-4">
               <button
