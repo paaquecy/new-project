@@ -16,13 +16,14 @@ interface OverviewDashboardProps {
 }
 
 const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ onNavigate }) => {
-  // Get setActiveNav from parent component via props or context
-  // For now, we'll use a placeholder function
   const handleQuickAction = (action: string) => {
-    console.log(`Quick action clicked: ${action}`);
+    console.log(`🔗 Navigating from Overview Dashboard to: ${action}`);
+
     // Navigate to the selected page
     if (onNavigate) {
       onNavigate(action);
+    } else {
+      console.warn('⚠️ Navigation function not available');
     }
   };
 
