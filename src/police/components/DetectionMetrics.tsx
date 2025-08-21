@@ -36,8 +36,6 @@ const DetectionMetrics: React.FC<DetectionMetricsProps> = ({ onDetection }) => {
     detectionHistory: []
   });
 
-  const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
     if (onDetection) {
       // This would be called from the parent component when a detection occurs
@@ -81,20 +79,6 @@ const DetectionMetrics: React.FC<DetectionMetricsProps> = ({ onDetection }) => {
     ocr: Math.round(detection.ocrConfidence * 100),
     time: Math.round(detection.processingTime)
   }));
-
-  if (!isVisible) {
-    return (
-      <div className="mb-4">
-        <button
-          onClick={() => setIsVisible(true)}
-          className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-        >
-          <Activity className="w-4 h-4 mr-2" />
-          Show Detection Metrics
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
