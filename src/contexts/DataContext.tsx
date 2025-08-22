@@ -362,7 +362,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateViolation = (violation: ViolationRecord) => {
     console.log('Update violation:', violation);
-    // Would implement Supabase update here
+
+    // Update local state immediately for better UX
+    setViolations(prev => prev.map(v =>
+      v.id === violation.id ? violation : v
+    ));
+
+    // Try to update via API (would implement Supabase update here in full version)
   };
 
   const submitViolation = async (violationData: any) => {
