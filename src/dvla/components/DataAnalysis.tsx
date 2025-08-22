@@ -41,6 +41,10 @@ const DataAnalysis: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching analytics data:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
       setError('Failed to load analytics data');
     } finally {
       setIsLoading(false);
