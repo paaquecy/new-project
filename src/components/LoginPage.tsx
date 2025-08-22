@@ -175,6 +175,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
               </div>
             </div>
 
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-red-700 text-sm font-medium">{errorMessage}</p>
+              </div>
+            )}
+
             {/* Login Button */}
             <button
               type="submit"
