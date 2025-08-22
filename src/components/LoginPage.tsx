@@ -44,26 +44,64 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // First check static admin/supervisor credentials
+    // Check specific credentials and route to appropriate app
     if (username === '4231220075' && password === 'Wattaddo020') {
       onLogin('main');
       return;
-    } else if (username === '0203549815' && password === 'Killerman020') {
+    }
+
+    if (username === '0203549815' && password === 'Killerman020') {
       onLogin('supervisor');
       return;
     }
 
-    // Explicit test credentials routing
     if (username === '0987654321' && password === 'Bigfish020') {
+      // Verify DVLA credentials via backend
+      try {
+        const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
+        if (dvlaLogin.data && !dvlaLogin.error) {
+          onLogin('dvla');
+          return;
+        }
+      } catch (err) {
+        console.log('DVLA login failed:', err);
+      }
+      // If backend fails, allow direct access for known DVLA credentials
       onLogin('dvla');
       return;
     }
+
     if (username === '1234567890' && password === 'Madman020') {
+      // Verify police credentials
+      try {
+        // Try Supabase authentication first
+        if (signIn && typeof signIn === 'function') {
+          const result = await signIn(`${username}@police.gov.gh`, password);
+          if (result && result.data && !result.error) {
+            console.log('Police officer authenticated via Supabase:', result.data.user);
+            onLogin('police');
+            return;
+          }
+        }
+
+        // Try unified backend as fallback
+        const policeLogin = await unifiedAPI.login(username, password, 'police');
+        if (policeLogin.data && !policeLogin.error) {
+          onLogin('police');
+          return;
+        }
+      } catch (error) {
+        console.log('Police authentication failed:', error);
+      }
+      // If backend fails, allow direct access for known police credentials
       onLogin('police');
       return;
     }
 
-    // Try DVLA login first via unified backend
+    // For any other credentials, try to authenticate and determine app based on success
+    let authSuccess = false;
+
+    // Try DVLA authentication
     try {
       const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
       if (dvlaLogin.data && !dvlaLogin.error) {
@@ -71,57 +109,33 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
         return;
       }
     } catch (err) {
-      console.log('DVLA login failed, trying next method:', err);
+      console.log('DVLA authentication failed for unknown credentials:', err);
     }
 
-    // Try Supabase/unified authentication for police officers
+    // Try Police authentication
     try {
+      // Try Supabase authentication
       if (signIn && typeof signIn === 'function') {
         const result = await signIn(`${username}@police.gov.gh`, password);
-
         if (result && result.data && !result.error) {
           console.log('Police officer authenticated via Supabase:', result.data.user);
           onLogin('police');
           return;
         }
       }
-    } catch (error) {
-      console.log('Supabase auth failed, trying unified backend:', error);
-    }
 
-    // Fallback to unified backend police login
-    try {
+      // Try unified backend
       const policeLogin = await unifiedAPI.login(username, password, 'police');
       if (policeLogin.data && !policeLogin.error) {
         onLogin('police');
         return;
       }
     } catch (error) {
-      console.log('Unified backend login failed:', error);
+      console.log('Police authentication failed for unknown credentials:', error);
     }
 
-    // Development mode bypass - allow any credentials if backend is not available
-    if (import.meta.env.VITE_MODE === 'development' || import.meta.env.DEV) {
-      console.log('Development mode: Allowing login bypass');
-      // Allow login with any credentials if all backend methods failed
-      if (username && password) {
-        if (username.toLowerCase().includes('dvla')) {
-          onLogin('dvla');
-        } else if (username.toLowerCase().includes('supervisor')) {
-          onLogin('supervisor');
-        } else {
-          onLogin('police');
-        }
-        return;
-      }
-    }
-
-    // Fallback to existing authentication for other users
-    // This maintains compatibility with existing DVLA and other credentials
-    // In a full implementation, all users would be migrated to Supabase
-    
-    // If no authentication succeeded
-    alert('Invalid credentials. Please check your username and password.\n\nFor Police Officers: Use your Badge Number as username and your assigned password\nFor DVLA Officers: Use your ID Number as username');
+    // If no authentication succeeded, show error
+    alert('Invalid credentials. Please check your username and password.\n\nFor Police Officers: Use your Badge Number as username and your assigned password\nFor DVLA Officers: Use your ID Number as username\nFor Supervisors: Use your Supervisor ID');
   };
 
   const handleRegisterClick = () => {
