@@ -452,6 +452,72 @@ class UnifiedAPIClient {
       };
     }
 
+    // Profile management endpoints
+    if (endpoint === '/auth/profile' && options.method === 'GET') {
+      const mockProfile = {
+        id: 1,
+        username: localStorage.getItem('current_username') || 'user123',
+        email: localStorage.getItem('user_email') || 'user@example.com',
+        full_name: localStorage.getItem('user_full_name') || 'John Mensah',
+        role: localStorage.getItem('user_role') || 'police',
+        badge_number: localStorage.getItem('user_badge') || 'B001',
+        rank: localStorage.getItem('user_rank') || 'Officer',
+        department: localStorage.getItem('user_department') || 'Traffic Division',
+        phone: localStorage.getItem('user_phone') || '+233 55 24 9824',
+        address: localStorage.getItem('user_address') || '123 Police Station Rd, City',
+        profile_picture: localStorage.getItem('user_profile_picture') || null
+      };
+      return { data: mockProfile as T };
+    }
+
+    if (endpoint === '/auth/profile' && options.method === 'PUT') {
+      const profileData = JSON.parse(options.body as string);
+      console.log('Updating profile:', profileData);
+
+      // Save to localStorage
+      if (profileData.full_name) localStorage.setItem('user_full_name', profileData.full_name);
+      if (profileData.email) localStorage.setItem('user_email', profileData.email);
+      if (profileData.phone) localStorage.setItem('user_phone', profileData.phone);
+      if (profileData.badge_number) localStorage.setItem('user_badge', profileData.badge_number);
+      if (profileData.rank) localStorage.setItem('user_rank', profileData.rank);
+      if (profileData.department) localStorage.setItem('user_department', profileData.department);
+      if (profileData.address) localStorage.setItem('user_address', profileData.address);
+      if (profileData.profile_picture) localStorage.setItem('user_profile_picture', profileData.profile_picture);
+
+      const updatedProfile = {
+        id: 1,
+        username: localStorage.getItem('current_username') || 'user123',
+        email: localStorage.getItem('user_email'),
+        full_name: localStorage.getItem('user_full_name'),
+        role: localStorage.getItem('user_role') || 'police',
+        badge_number: localStorage.getItem('user_badge'),
+        rank: localStorage.getItem('user_rank'),
+        department: localStorage.getItem('user_department'),
+        phone: localStorage.getItem('user_phone'),
+        address: localStorage.getItem('user_address'),
+        profile_picture: localStorage.getItem('user_profile_picture')
+      };
+
+      return { data: updatedProfile as T };
+    }
+
+    if (endpoint === '/auth/change-password' && options.method === 'PUT') {
+      const passwordData = JSON.parse(options.body as string);
+      console.log('Password change request received');
+
+      // In a real implementation, you'd verify the current password
+      // For mock, we'll just return success
+      return { data: { message: 'Password changed successfully' } as T };
+    }
+
+    if (endpoint === '/auth/profile/picture' && options.method === 'POST') {
+      // Mock profile picture upload
+      const mockImageUrl = `https://api.placeholder.com/150x150/0066cc/ffffff?text=${Date.now()}`;
+      localStorage.setItem('user_profile_picture', mockImageUrl);
+
+      return { data: { profile_picture_url: mockImageUrl } as T };
+    }
+
     if (endpoint.includes('/vehicles/') && !endpoint.includes('/dvla/')) {
       // Extract plate number from endpoint (e.g., /vehicles/GR-1234-23)
       const plateNumber = endpoint.split('/vehicles/')[1];
