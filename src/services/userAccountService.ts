@@ -88,61 +88,15 @@ class UserAccountService {
   // Register a new user account (pending approval)
   async registerUser(userData: UserRegistrationData): Promise<{ success: boolean; message: string; userId?: string }> {
     try {
-      // Check if username already exists
-      const existingUser = await this.checkUsernameExists(
-        userData.accountType === 'police' ? userData.badgeNumber! : userData.idNumber!,
-        userData.accountType
-      );
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (existingUser) {
-        return {
-          success: false,
-          message: `${userData.accountType === 'police' ? 'Badge number' : 'ID number'} already exists`
-        };
+      if (supabaseAvailable) {
+        // Use Supabase
+        return await this.registerUserWithSupabase(userData);
+      } else {
+        // Use localStorage fallback
+        return await this.registerUserWithLocalStorage(userData);
       }
-
-      // Hash password
-      const passwordHash = await this.hashPassword(userData.password);
-
-      // Prepare user data for database
-      const dbUserData = {
-        first_name: userData.firstName,
-        last_name: userData.lastName,
-        email: userData.email,
-        telephone: userData.telephone,
-        account_type: userData.accountType,
-        status: 'pending' as const,
-        password_hash: passwordHash,
-        ...(userData.accountType === 'police' ? {
-          badge_number: userData.badgeNumber,
-          rank: userData.rank,
-          station: userData.station
-        } : {
-          id_number: userData.idNumber,
-          position: userData.position
-        })
-      };
-
-      const { data, error } = await supabase
-        .from('user_accounts')
-        .insert(dbUserData)
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('Registration error:', error);
-        return {
-          success: false,
-          message: 'Failed to create account. Please try again.'
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Account created successfully! Waiting for admin approval.',
-        userId: data.id
-      };
-
     } catch (error) {
       console.error('Registration error:', error);
       return {
@@ -150,6 +104,96 @@ class UserAccountService {
         message: 'An unexpected error occurred. Please try again.'
       };
     }
+  }
+
+  private async registerUserWithSupabase(userData: UserRegistrationData): Promise<{ success: boolean; message: string; userId?: string }> {
+    // Check if username already exists
+    const existingUser = await this.checkUsernameExists(
+      userData.accountType === 'police' ? userData.badgeNumber! : userData.idNumber!,
+      userData.accountType
+    );
+
+    if (existingUser) {
+      return {
+        success: false,
+        message: `${userData.accountType === 'police' ? 'Badge number' : 'ID number'} already exists`
+      };
+    }
+
+    // Hash password
+    const passwordHash = await this.hashPassword(userData.password);
+
+    // Prepare user data for database
+    const dbUserData = {
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      email: userData.email,
+      telephone: userData.telephone,
+      account_type: userData.accountType,
+      status: 'pending' as const,
+      password_hash: passwordHash,
+      ...(userData.accountType === 'police' ? {
+        badge_number: userData.badgeNumber,
+        rank: userData.rank,
+        station: userData.station
+      } : {
+        id_number: userData.idNumber,
+        position: userData.position
+      })
+    };
+
+    const { data, error } = await supabase
+      .from('user_accounts')
+      .insert(dbUserData)
+      .select('id')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      success: true,
+      message: 'Account created successfully! Waiting for admin approval.',
+      userId: data.id
+    };
+  }
+
+  private async registerUserWithLocalStorage(userData: UserRegistrationData): Promise<{ success: boolean; message: string; userId?: string }> {
+    console.log('Using localStorage fallback for user registration');
+
+    // Check if username already exists
+    const username = userData.accountType === 'police' ? userData.badgeNumber! : userData.idNumber!;
+    if (checkUsernameInStorage(username, userData.accountType)) {
+      return {
+        success: false,
+        message: `${userData.accountType === 'police' ? 'Badge number' : 'ID number'} already exists`
+      };
+    }
+
+    // Create user with localStorage
+    const newUser = addUserToStorage({
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      email: userData.email,
+      telephone: userData.telephone,
+      accountType: userData.accountType,
+      password: userData.password,
+      ...(userData.accountType === 'police' ? {
+        badgeNumber: userData.badgeNumber,
+        rank: userData.rank,
+        station: userData.station
+      } : {
+        idNumber: userData.idNumber,
+        position: userData.position
+      })
+    });
+
+    return {
+      success: true,
+      message: 'Account created successfully! Waiting for admin approval.',
+      userId: newUser.id
+    };
   }
 
   // Check if username exists
