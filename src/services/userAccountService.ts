@@ -323,22 +323,53 @@ class UserAccountService {
   // Get all pending user accounts for admin approval
   async getPendingUsers(): Promise<UserAccount[]> {
     try {
-      const { data, error } = await supabase
-        .from('user_accounts')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (error) {
-        console.error('Error fetching pending users:', error);
-        return [];
+      if (supabaseAvailable) {
+        const { data, error } = await supabase
+          .from('user_accounts')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        return data as UserAccount[];
+      } else {
+        // Use localStorage fallback
+        const users = getPendingUsersFromStorage();
+        return users.map(user => this.convertToUserAccount(user));
       }
-
-      return data as UserAccount[];
     } catch (error) {
       console.error('Error fetching pending users:', error);
-      return [];
+      // Fallback to localStorage
+      const users = getPendingUsersFromStorage();
+      return users.map(user => this.convertToUserAccount(user));
     }
+  }
+
+  // Helper method to convert localStorage user to UserAccount format
+  private convertToUserAccount(user: any): UserAccount {
+    return {
+      id: user.id,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.email,
+      telephone: user.telephone,
+      account_type: user.accountType,
+      status: user.status,
+      badge_number: user.badgeNumber,
+      rank: user.rank,
+      station: user.station,
+      id_number: user.idNumber,
+      position: user.position,
+      created_at: user.createdAt,
+      approved_at: user.approvedAt,
+      rejected_at: user.rejectedAt,
+      rejection_reason: user.rejectionReason
+    };
   }
 
   // Approve a user account
