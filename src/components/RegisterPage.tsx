@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Shield, Car, Phone, Mail, Lock, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { addUser, isUsernameExists } from '../utils/userStorage';
 import { validatePassword, getSecurityConfig } from '../utils/securityConfig';
+import { userAccountService } from '../services/userAccountService';
 
 interface RegisterPageProps {
   onBackToLogin: () => void;
