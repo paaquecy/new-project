@@ -62,6 +62,16 @@ export interface AuthResult {
 }
 
 class UserAccountService {
+  // Check if Supabase is properly configured
+  private async isSupabaseAvailable(): Promise<boolean> {
+    try {
+      const { error } = await supabase.from('user_accounts').select('id').limit(1);
+      return !error || error.code !== 'MOCK_CLIENT';
+    } catch (error) {
+      return false;
+    }
+  }
+
   // Hash password (in production, use bcrypt or similar)
   private async hashPassword(password: string): Promise<string> {
     // For demo purposes, we'll use a simple hash
