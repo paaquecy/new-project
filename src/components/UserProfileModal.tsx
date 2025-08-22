@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { unifiedAPI } from '../lib/unified-api';
+import { useData } from '../contexts/DataContext';
+import { Save, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -6,11 +9,15 @@ interface UserProfileModalProps {
 }
 
 const initialProfile = {
-  name: 'John Mensah',
-  email: 'john.doe@example.com',
-  role: 'Administrator',
-  contact: '+1-555-0123',
-  department: 'IT Department',
+  name: '',
+  email: '',
+  role: '',
+  contact: '',
+  department: '',
+  badgeNumber: '',
+  rank: '',
+  address: '',
+  profilePicture: ''
 };
 
 const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
@@ -18,14 +25,96 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
   const [editMode, setEditMode] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'success' | 'error' | ''>('');
+  const { addNotification } = useData();
+
+  // Load current user profile when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadUserProfile();
+    }
+  }, [isOpen]);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await unifiedAPI.getCurrentUserProfile();
+      if (response.data) {
+        setProfile({
+          name: response.data.full_name || '',
+          email: response.data.email || '',
+          role: response.data.role || '',
+          contact: response.data.phone || '',
+          department: response.data.department || '',
+          badgeNumber: response.data.badge_number || '',
+          rank: response.data.rank || '',
+          address: response.data.address || '',
+          profilePicture: response.data.profile_picture || ''
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    setEditMode(false);
-    // Save logic here
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveStatus('');
+
+    try {
+      const profileData = {
+        full_name: profile.name,
+        email: profile.email,
+        phone: profile.contact,
+        badge_number: profile.badgeNumber,
+        rank: profile.rank,
+        department: profile.department,
+        address: profile.address,
+        profile_picture: profile.profilePicture
+      };
+
+      const response = await unifiedAPI.updateUserProfile(profileData);
+
+      if (response.data) {
+        setEditMode(false);
+        setSaveStatus('success');
+
+        // Add notification to app state
+        addNotification({
+          id: Date.now().toString(),
+          title: 'Profile Updated',
+          message: 'Your profile information has been saved successfully.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          read: false,
+          system: 'Main App'
+        });
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveStatus(''), 3000);
+      } else {
+        throw new Error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      setSaveStatus('error');
+
+      addNotification({
+        id: Date.now().toString(),
+        title: 'Profile Update Failed',
+        message: 'There was an error saving your profile. Please try again.',
+        type: 'error',
+        timestamp: new Date().toISOString(),
+        read: false,
+        system: 'Main App'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
