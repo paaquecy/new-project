@@ -72,6 +72,9 @@ function AppContent() {
     initializeDemoAuditLogs();
     loadPendingApprovals();
 
+    // Initialize database with demo users if needed
+    userAccountService.initializeDemoData();
+
     // Only log system startup if not restoring from session
     if (!initialSession.isLoggedIn) {
       logSystem('System Startup', 'Main application initialized', 'main');
