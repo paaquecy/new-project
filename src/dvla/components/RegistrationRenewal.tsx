@@ -240,7 +240,11 @@ const RegistrationRenewal: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 bg-white min-w-[140px] justify-between"
+              className={`flex items-center space-x-2 px-4 py-3 border rounded-lg transition-all duration-200 min-w-[140px] justify-between ${
+                darkMode
+                  ? 'bg-gray-700 border-gray-600 text-gray-100 hover:bg-gray-600'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
             >
               <span className="text-gray-700">{statusFilter}</span>
               <ChevronDown 
