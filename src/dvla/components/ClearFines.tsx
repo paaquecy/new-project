@@ -90,6 +90,15 @@ const ClearFines: React.FC = () => {
         unifiedAPI.getDVLAVehicles()
       ]);
 
+      console.log('API Responses:', {
+        finesResponse,
+        vehiclesResponse,
+        finesDataType: typeof finesResponse.data,
+        vehiclesDataType: typeof vehiclesResponse.data,
+        finesIsArray: Array.isArray(finesResponse.data),
+        vehiclesIsArray: Array.isArray(vehiclesResponse.data)
+      });
+
       if (finesResponse.data && vehiclesResponse.data) {
         const fines = Array.isArray(finesResponse.data) ? finesResponse.data : [];
         const vehicles = Array.isArray(vehiclesResponse.data) ? vehiclesResponse.data : [];
