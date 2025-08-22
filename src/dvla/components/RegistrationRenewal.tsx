@@ -104,8 +104,13 @@ const RegistrationRenewal: React.FC = () => {
         });
 
         setRenewalRecords(records);
+
+        if (records.length === 0) {
+          console.log('No renewal records created from vehicles and renewals data');
+        }
       } else {
-        setError('Failed to load renewal data');
+        console.log('API responses missing data:', { vehiclesResponse, renewalsResponse });
+        setError('Failed to load renewal data - API responses missing data');
       }
     } catch (err) {
       console.error('Error fetching renewal data:', err);
