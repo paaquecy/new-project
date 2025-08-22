@@ -21,6 +21,7 @@ import { userAccountService, UserAccount } from '../services/userAccountService'
 
 interface UserAccountManagementProps {
   currentUserId?: string; // ID of the currently logged-in admin
+  searchQuery?: string; // Search query from parent component
 }
 
 const UserAccountManagement: React.FC<UserAccountManagementProps> = ({ currentUserId }) => {
