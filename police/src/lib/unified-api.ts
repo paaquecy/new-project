@@ -481,6 +481,10 @@ class UnifiedAPIClient {
     return this.request<Vehicle>(`/vehicles/${plateNumber}`);
   }
 
+  async lookupVehicle(plateNumber: string): Promise<ApiResponse<Vehicle>> {
+    return this.request<Vehicle>(`/vehicles/${plateNumber}`);
+  }
+
   async recognizePlate(imageData: string, userId: string): Promise<ApiResponse<any>> {
     return this.request(`/plate-recognition`, {
       method: 'POST',
