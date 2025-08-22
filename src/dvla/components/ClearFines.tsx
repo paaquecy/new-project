@@ -119,6 +119,10 @@ const ClearFines: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching fines data:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
       setError('Failed to load fines data');
     } finally {
       setIsLoading(false);
