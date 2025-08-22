@@ -38,8 +38,11 @@ const VehicleRecords: React.FC = () => {
       const response = await unifiedAPI.getDVLAVehicles();
 
       if (response.data) {
+        const vehiclesData = Array.isArray(response.data) ? response.data : [];
+        console.log('Vehicle records data:', vehiclesData);
+
         // Convert DVLAVehicle to VehicleRecord format
-        const records: VehicleRecord[] = response.data.map((vehicle: DVLAVehicle) => ({
+        const records: VehicleRecord[] = vehiclesData.map((vehicle: DVLAVehicle) => ({
           id: vehicle.id,
           licensePlate: vehicle.license_plate,
           make: vehicle.manufacturer,
