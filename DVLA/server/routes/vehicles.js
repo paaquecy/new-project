@@ -1,7 +1,7 @@
 const express = require('express');
-const { database } = require('../config/database');
+const { database, TABLES, VEHICLE_STATUS } = require('../config/supabase');
 const { validateVehicle, validateId, validateQuery } = require('../middleware/validation');
-const { upload, handleUploadError } = require('../middleware/upload');
+const { supabaseUploadMultipleMiddleware, saveFileMetadata } = require('../middleware/supabaseUpload');
 
 const router = express.Router();
 
@@ -14,47 +14,41 @@ router.get('/', validateQuery, async (req, res) => {
     const search = req.query.search || '';
     const status = req.query.status || '';
 
-    let whereClause = 'WHERE 1=1';
-    let params = [];
+    // Build query with filters
+    let query = database.client
+      .from(TABLES.VEHICLES)
+      .select('id, reg_number, manufacturer, model, vehicle_type, license_plate, owner_name, owner_phone, owner_email, status, created_at', { count: 'exact' });
 
+    // Apply search filter
     if (search) {
-      whereClause += ' AND (reg_number LIKE ? OR license_plate LIKE ? OR owner_name LIKE ? OR manufacturer LIKE ? OR model LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm, searchTerm, searchTerm);
+      query = query.or(`reg_number.ilike.%${search}%,license_plate.ilike.%${search}%,owner_name.ilike.%${search}%,manufacturer.ilike.%${search}%,model.ilike.%${search}%`);
     }
 
+    // Apply status filter
     if (status) {
-      whereClause += ' AND status = ?';
-      params.push(status);
+      query = query.eq('status', status);
     }
 
-    // Get total count
-    const countResult = await database.get(
-      `SELECT COUNT(*) as total FROM vehicles ${whereClause}`,
-      params
-    );
+    // Apply pagination and ordering
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // Get vehicles
-    const vehicles = await database.all(
-      `SELECT 
-        id, reg_number, manufacturer, model, vehicle_type, license_plate,
-        owner_name, owner_phone, owner_email, status, created_at
-       FROM vehicles 
-       ${whereClause}
-       ORDER BY created_at DESC 
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+    const { data: vehicles, error, count } = await query;
+
+    if (error) {
+      throw error;
+    }
 
     res.json({
       success: true,
       data: {
-        vehicles,
+        vehicles: vehicles || [],
         pagination: {
           page,
           limit,
-          total: countResult.total,
-          pages: Math.ceil(countResult.total / limit)
+          total: count || 0,
+          pages: Math.ceil((count || 0) / limit)
         }
       }
     });
@@ -62,7 +56,8 @@ router.get('/', validateQuery, async (req, res) => {
     console.error('Get vehicles error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch vehicles'
+      message: 'Failed to fetch vehicles',
+      error: error.message
     });
   }
 });
@@ -70,10 +65,18 @@ router.get('/', validateQuery, async (req, res) => {
 // Get vehicle by ID
 router.get('/:id', validateId, async (req, res) => {
   try {
-    const vehicle = await database.get(
-      'SELECT * FROM vehicles WHERE id = ?',
-      [req.params.id]
-    );
+    const vehicleId = req.params.id;
+
+    // Get vehicle data
+    const { data: vehicle, error: vehicleError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('*')
+      .eq('id', vehicleId)
+      .single();
+
+    if (vehicleError) {
+      throw vehicleError;
+    }
 
     if (!vehicle) {
       return res.status(404).json({
@@ -83,23 +86,29 @@ router.get('/:id', validateId, async (req, res) => {
     }
 
     // Get associated documents
-    const documents = await database.all(
-      'SELECT * FROM documents WHERE entity_type = ? AND entity_id = ?',
-      ['vehicle', req.params.id]
-    );
+    const { data: documents, error: documentsError } = await database.client
+      .from(TABLES.DOCUMENTS)
+      .select('*')
+      .eq('entity_type', 'vehicle')
+      .eq('entity_id', vehicleId);
+
+    if (documentsError) {
+      console.error('Error fetching documents:', documentsError);
+    }
 
     res.json({
       success: true,
       data: {
         vehicle,
-        documents
+        documents: documents || []
       }
     });
   } catch (error) {
     console.error('Get vehicle error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch vehicle'
+      message: 'Failed to fetch vehicle',
+      error: error.message
     });
   }
 });
@@ -109,54 +118,42 @@ router.post('/', validateVehicle, async (req, res) => {
   try {
     const vehicleData = {
       ...req.body,
-      created_by: req.user.id,
-      status: 'active'
+      created_by: req.user?.id || null,
+      status: VEHICLE_STATUS.ACTIVE
     };
 
-    const result = await database.run(
-      `INSERT INTO vehicles (
-        reg_number, manufacturer, model, vehicle_type, chassis_number,
-        year_of_manufacture, vin, license_plate, color, use_type,
-        date_of_entry, length_cm, width_cm, height_cm, number_of_axles,
-        number_of_wheels, tyre_size_front, tyre_size_middle, tyre_size_rear,
-        axle_load_front_kg, axle_load_middle_kg, axle_load_rear_kg, weight_kg,
-        engine_make, engine_number, number_of_cylinders, engine_cc, horse_power,
-        owner_name, owner_address, owner_phone, owner_email, status, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        vehicleData.reg_number, vehicleData.manufacturer, vehicleData.model,
-        vehicleData.vehicle_type, vehicleData.chassis_number, vehicleData.year_of_manufacture,
-        vehicleData.vin, vehicleData.license_plate, vehicleData.color, vehicleData.use_type,
-        vehicleData.date_of_entry, vehicleData.length_cm, vehicleData.width_cm,
-        vehicleData.height_cm, vehicleData.number_of_axles, vehicleData.number_of_wheels,
-        vehicleData.tyre_size_front, vehicleData.tyre_size_middle, vehicleData.tyre_size_rear,
-        vehicleData.axle_load_front_kg, vehicleData.axle_load_middle_kg, vehicleData.axle_load_rear_kg,
-        vehicleData.weight_kg, vehicleData.engine_make, vehicleData.engine_number,
-        vehicleData.number_of_cylinders, vehicleData.engine_cc, vehicleData.horse_power,
-        vehicleData.owner_name, vehicleData.owner_address, vehicleData.owner_phone,
-        vehicleData.owner_email, vehicleData.status, vehicleData.created_by
-      ]
-    );
+    const { data: vehicle, error } = await database.client
+      .from(TABLES.VEHICLES)
+      .insert(vehicleData)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      ['vehicles', result.id, 'create', JSON.stringify(vehicleData), req.user.id]
+    await database.logAudit(
+      TABLES.VEHICLES,
+      vehicle.id,
+      'INSERT',
+      null,
+      vehicleData,
+      req.user?.id
     );
 
     res.status(201).json({
       success: true,
       message: 'Vehicle registered successfully',
       data: {
-        id: result.id,
-        reg_number: vehicleData.reg_number
+        id: vehicle.id,
+        reg_number: vehicle.reg_number
       }
     });
   } catch (error) {
     console.error('Create vehicle error:', error);
     
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.code === '23505') { // PostgreSQL unique constraint violation
       return res.status(409).json({
         success: false,
         message: 'Vehicle with this registration number, VIN, or license plate already exists'
@@ -165,7 +162,8 @@ router.post('/', validateVehicle, async (req, res) => {
     
     res.status(500).json({
       success: false,
-      message: 'Failed to register vehicle'
+      message: 'Failed to register vehicle',
+      error: error.message
     });
   }
 });
@@ -176,10 +174,15 @@ router.put('/:id', validateId, async (req, res) => {
     const vehicleId = req.params.id;
 
     // Get current vehicle data for audit log
-    const currentVehicle = await database.get(
-      'SELECT * FROM vehicles WHERE id = ?',
-      [vehicleId]
-    );
+    const { data: currentVehicle, error: fetchError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('*')
+      .eq('id', vehicleId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!currentVehicle) {
       return res.status(404).json({
@@ -193,47 +196,57 @@ router.put('/:id', validateId, async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    // Build dynamic update query
-    const updateFields = Object.keys(updateData).filter(key => key !== 'id');
-    const setClause = updateFields.map(field => `${field} = ?`).join(', ');
-    const values = updateFields.map(field => updateData[field]);
-    values.push(vehicleId);
+    const { data: updatedVehicle, error: updateError } = await database.client
+      .from(TABLES.VEHICLES)
+      .update(updateData)
+      .eq('id', vehicleId)
+      .select()
+      .single();
 
-    await database.run(
-      `UPDATE vehicles SET ${setClause} WHERE id = ?`,
-      values
-    );
+    if (updateError) {
+      throw updateError;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      ['vehicles', vehicleId, 'update', JSON.stringify(currentVehicle), JSON.stringify(updateData), req.user.id]
+    await database.logAudit(
+      TABLES.VEHICLES,
+      vehicleId,
+      'UPDATE',
+      currentVehicle,
+      updateData,
+      req.user?.id
     );
 
     res.json({
       success: true,
-      message: 'Vehicle updated successfully'
+      message: 'Vehicle updated successfully',
+      data: updatedVehicle
     });
   } catch (error) {
     console.error('Update vehicle error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update vehicle'
+      message: 'Failed to update vehicle',
+      error: error.message
     });
   }
 });
 
-// Delete vehicle
+// Delete vehicle (soft delete)
 router.delete('/:id', validateId, async (req, res) => {
   try {
     const vehicleId = req.params.id;
 
     // Get vehicle data for audit log
-    const vehicle = await database.get(
-      'SELECT * FROM vehicles WHERE id = ?',
-      [vehicleId]
-    );
+    const { data: vehicle, error: fetchError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('*')
+      .eq('id', vehicleId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!vehicle) {
       return res.status(404).json({
@@ -243,16 +256,26 @@ router.delete('/:id', validateId, async (req, res) => {
     }
 
     // Soft delete by updating status
-    await database.run(
-      'UPDATE vehicles SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      ['deleted', vehicleId]
-    );
+    const { error: updateError } = await database.client
+      .from(TABLES.VEHICLES)
+      .update({ 
+        status: 'deleted',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', vehicleId);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, user_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      ['vehicles', vehicleId, 'delete', JSON.stringify(vehicle), req.user.id]
+    await database.logAudit(
+      TABLES.VEHICLES,
+      vehicleId,
+      'DELETE',
+      vehicle,
+      null,
+      req.user?.id
     );
 
     res.json({
@@ -263,31 +286,33 @@ router.delete('/:id', validateId, async (req, res) => {
     console.error('Delete vehicle error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete vehicle'
+      message: 'Failed to delete vehicle',
+      error: error.message
     });
   }
 });
 
 // Upload vehicle documents
-router.post('/:id/documents', validateId, upload.array('documents', 10), handleUploadError, async (req, res) => {
+router.post('/:id/documents', validateId, supabaseUploadMultipleMiddleware('document', 'documents', 10), async (req, res) => {
   try {
     const vehicleId = req.params.id;
     const { document_type } = req.body;
 
     // Verify vehicle exists
-    const vehicle = await database.get(
-      'SELECT id FROM vehicles WHERE id = ?',
-      [vehicleId]
-    );
+    const { data: vehicle, error: vehicleError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('id')
+      .eq('id', vehicleId)
+      .single();
 
-    if (!vehicle) {
+    if (vehicleError || !vehicle) {
       return res.status(404).json({
         success: false,
         message: 'Vehicle not found'
       });
     }
 
-    if (!req.files || req.files.length === 0) {
+    if (!req.uploadResults || req.uploadResults.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'No files uploaded'
@@ -296,19 +321,27 @@ router.post('/:id/documents', validateId, upload.array('documents', 10), handleU
 
     const uploadedDocuments = [];
 
-    for (const file of req.files) {
-      const result = await database.run(
-        `INSERT INTO documents (entity_type, entity_id, document_type, file_name, file_path, file_size, mime_type, uploaded_by) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['vehicle', vehicleId, document_type, file.originalname, file.path, file.size, file.mimetype, req.user.id]
-      );
-
-      uploadedDocuments.push({
-        id: result.id,
-        file_name: file.originalname,
-        file_size: file.size,
-        mime_type: file.mimetype
-      });
+    // Save file metadata to database
+    for (const uploadResult of req.uploadResults) {
+      try {
+        const documentData = await saveFileMetadata(
+          uploadResult,
+          'vehicle',
+          vehicleId,
+          document_type || 'general',
+          req.user?.id
+        );
+        
+        uploadedDocuments.push({
+          id: documentData.id,
+          file_name: uploadResult.originalName,
+          file_size: uploadResult.fileSize,
+          mime_type: uploadResult.mimeType,
+          file_url: uploadResult.publicUrl
+        });
+      } catch (metadataError) {
+        console.error('Failed to save file metadata:', metadataError);
+      }
     }
 
     res.status(201).json({
@@ -320,7 +353,8 @@ router.post('/:id/documents', validateId, upload.array('documents', 10), handleU
     console.error('Upload documents error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to upload documents'
+      message: 'Failed to upload documents',
+      error: error.message
     });
   }
 });
@@ -328,23 +362,65 @@ router.post('/:id/documents', validateId, upload.array('documents', 10), handleU
 // Get vehicle statistics
 router.get('/stats/overview', async (req, res) => {
   try {
-    const stats = await Promise.all([
-      database.get("SELECT COUNT(*) as total FROM vehicles WHERE status = 'active'"),
-      database.get("SELECT COUNT(*) as total FROM vehicles WHERE status = 'active' AND date(created_at) = date('now')"),
-      database.get("SELECT COUNT(*) as total FROM vehicles WHERE vehicle_type = 'sedan' AND status = 'active'"),
-      database.get("SELECT COUNT(*) as total FROM vehicles WHERE vehicle_type = 'suv' AND status = 'active'"),
-      database.get("SELECT COUNT(*) as total FROM vehicles WHERE vehicle_type = 'truck' AND status = 'active'")
-    ]);
+    // Get total vehicles by status
+    const { data: statusStats, error: statusError } = await database.client
+      .rpc('get_vehicle_statistics');
+
+    if (statusError) {
+      throw statusError;
+    }
+
+    // Get vehicles created today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayVehicles, error: todayError, count: todayCount } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('id', { count: 'exact', head: true })
+      .eq('status', VEHICLE_STATUS.ACTIVE)
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lt('created_at', `${today}T23:59:59.999Z`);
+
+    if (todayError) {
+      console.error('Error fetching today stats:', todayError);
+    }
+
+    // Get vehicles by type
+    const { data: typeStats, error: typeError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('vehicle_type')
+      .eq('status', VEHICLE_STATUS.ACTIVE);
+
+    if (typeError) {
+      console.error('Error fetching type stats:', typeError);
+    }
+
+    // Count by type
+    const typeCounts = (typeStats || []).reduce((acc, vehicle) => {
+      acc[vehicle.vehicle_type] = (acc[vehicle.vehicle_type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const stats = statusStats && statusStats.length > 0 ? statusStats[0] : {
+      total_vehicles: 0,
+      active_vehicles: 0,
+      expired_vehicles: 0,
+      suspended_vehicles: 0
+    };
 
     res.json({
       success: true,
       data: {
-        total_vehicles: stats[0].total,
-        new_today: stats[1].total,
+        total_vehicles: stats.total_vehicles || 0,
+        active_vehicles: stats.active_vehicles || 0,
+        expired_vehicles: stats.expired_vehicles || 0,
+        suspended_vehicles: stats.suspended_vehicles || 0,
+        new_today: todayCount || 0,
         by_type: {
-          sedan: stats[2].total,
-          suv: stats[3].total,
-          truck: stats[4].total
+          sedan: typeCounts.sedan || 0,
+          suv: typeCounts.suv || 0,
+          truck: typeCounts.truck || 0,
+          other: Object.entries(typeCounts)
+            .filter(([type]) => !['sedan', 'suv', 'truck'].includes(type))
+            .reduce((sum, [, count]) => sum + count, 0)
         }
       }
     });
@@ -352,7 +428,41 @@ router.get('/stats/overview', async (req, res) => {
     console.error('Get vehicle stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch vehicle statistics'
+      message: 'Failed to fetch vehicle statistics',
+      error: error.message
+    });
+  }
+});
+
+// Search vehicles by plate number or registration
+router.get('/search/:query', async (req, res) => {
+  try {
+    const query = req.params.query;
+
+    const { data: vehicles, error } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('*')
+      .or(`license_plate.ilike.%${query}%,reg_number.ilike.%${query}%`)
+      .eq('status', VEHICLE_STATUS.ACTIVE)
+      .limit(10);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        vehicles: vehicles || [],
+        query
+      }
+    });
+  } catch (error) {
+    console.error('Search vehicles error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search vehicles',
+      error: error.message
     });
   }
 });
