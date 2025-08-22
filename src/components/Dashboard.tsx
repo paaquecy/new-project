@@ -1,14 +1,24 @@
 import React from 'react';
-import { 
-  Car, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Car,
+  AlertTriangle,
+  CheckCircle,
   TrendingUp,
   Clock,
   Calendar,
   BarChart3,
   Bell
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
 
 interface DashboardProps {
   darkMode: boolean;
