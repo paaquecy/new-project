@@ -42,7 +42,7 @@ function DvlaAppContent({ onLogout }: DvlaAppProps) {
     const autoLogin = async () => {
       if (!isAuthenticated && !isLoading) {
         try {
-          await login('admin', 'admin123');
+          await login('0987654321', 'Bigfish020');
           console.log('Auto-logged in to DVLA system');
         } catch (error) {
           console.error('Auto-login failed:', error);

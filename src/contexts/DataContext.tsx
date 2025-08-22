@@ -220,7 +220,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
       // Load violations from shared database with better error handling
       const violationsResponse = await unifiedAPI.getViolations();
-      if (violationsResponse.data && Array.isArray(violationsResponse.data)) {
+      if (violationsResponse.data && Array.isArray(violationsResponse.data) && violationsResponse.data.length > 0) {
         const convertedViolations: ViolationRecord[] = violationsResponse.data.map((v: any) => ({
           id: v.id || '',
           plateNumber: v.plate_number || '',
@@ -236,17 +236,53 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }));
         setViolations(convertedViolations);
         console.log('Loaded violations successfully:', convertedViolations.length);
-      } else if (violationsResponse.error) {
-        throw new Error(violationsResponse.error);
       } else {
-        console.warn('No violations data received');
-        setViolations([]); // Set empty array as fallback
+        // Fallback to supervisor mock data if no violations from API
+        try {
+          const { mockViolations } = await import('../supervisor/data/mockData');
+          const fallbackViolations: ViolationRecord[] = mockViolations.map((v: any) => ({
+            id: v.id || '',
+            plateNumber: v.plateNumber || '',
+            violationType: v.offense || '',
+            location: v.location || '',
+            timestamp: v.dateTime || '',
+            officerId: v.officerId || '',
+            officerName: v.capturedBy || '',
+            status: v.status === 'accepted' ? 'approved' : v.status === 'rejected' ? 'rejected' : 'pending',
+            evidence: v.imageUrl || '',
+            description: v.description || '',
+            fine: v.fine || 0
+          }));
+          setViolations(fallbackViolations);
+          console.log('Loaded supervisor fallback violations:', fallbackViolations.length);
+        } catch (err) {
+          console.warn('Failed to import supervisor mock fallback', err);
+          setViolations([]); // Set empty array as final fallback
+        }
       }
 
-      // Initialize empty arrays for other data types
+      // Initialize empty arrays for other data types, with supervisor mock fallback for notifications
       setUsers([]);
       setFines([]);
-      setNotifications([]);
+
+      // Load supervisor mock notifications as fallback
+      try {
+        const { mockNotifications } = await import('../supervisor/data/mockData');
+        const fallbackNotifications: Notification[] = mockNotifications.map((n: any) => ({
+          id: n.id || '',
+          title: n.type === 'new_violation' ? 'New Violation' : 'System Notification',
+          message: n.message || '',
+          type: n.type === 'new_violation' ? 'info' : n.type === 'system' ? 'info' : 'info',
+          timestamp: n.createdAt || '',
+          read: n.read || false,
+          system: 'Supervisor App'
+        }));
+        setNotifications(fallbackNotifications);
+        console.log('Loaded supervisor fallback notifications:', fallbackNotifications.length);
+      } catch (err) {
+        console.warn('Failed to import supervisor notification fallback', err);
+        setNotifications([]);
+      }
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -344,7 +380,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateViolation = (violation: ViolationRecord) => {
     console.log('Update violation:', violation);
-    // Would implement Supabase update here
+
+    // Update local state immediately for better UX
+    setViolations(prev => prev.map(v =>
+      v.id === violation.id ? violation : v
+    ));
+
+    // Try to update via API (would implement Supabase update here in full version)
   };
 
   const submitViolation = async (violationData: any) => {
