@@ -50,8 +50,13 @@ const UserAccountManagement: React.FC<UserAccountManagementProps> = ({ currentUs
       ]);
       setPendingUsers(pending);
       setApprovedUsers(approved);
+
+      // Check if using localStorage fallback (if any user has a message indicating localStorage usage)
+      const isUsingFallback = pending.length === 0 && approved.length === 0;
+      setShowSupabaseNotice(isUsingFallback);
     } catch (error) {
       console.error('Error loading users:', error);
+      setShowSupabaseNotice(true); // Show notice if there's an error
     } finally {
       setLoading(false);
     }
