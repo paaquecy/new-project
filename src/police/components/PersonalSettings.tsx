@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Settings, 
+import React, { useState, useEffect } from 'react';
+import {
+  User,
+  Bell,
+  Shield,
+  Settings,
   Save,
   Camera,
   Eye,
@@ -11,6 +11,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { unifiedAPI } from '../lib/unified-api';
 
 const PersonalSettings = () => {
   // Profile Settings State
