@@ -359,7 +359,9 @@ function AppContent() {
       case 'notifications':
         return <NotificationsContent />;
       case 'user-accounts':
-        return <UserAccountManagement searchQuery={searchQuery} />;
+        // Get current user from session storage for admin operations
+        const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        return <UserAccountManagement searchQuery={searchQuery} currentUserId={currentUser.id} />;
       case 'vehicle-registry':
         return <VehicleRegistry searchQuery={searchQuery} />;
       case 'analytics':
