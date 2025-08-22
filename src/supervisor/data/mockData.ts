@@ -214,10 +214,10 @@ export const mockNotifications: Notification[] = [
 ];
 
 export const mockDashboardStats: DashboardStats = {
-  totalToday: 3,
+  totalToday: 12,
   accepted: 1,
   rejected: 0,
-  pending: 2,
+  pending: 11,
   weeklyData: [
     { day: 'Mon', violations: 8, accepted: 6, rejected: 2 },
     { day: 'Tue', violations: 12, accepted: 9, rejected: 3 },
@@ -225,7 +225,7 @@ export const mockDashboardStats: DashboardStats = {
     { day: 'Thu', violations: 15, accepted: 12, rejected: 3 },
     { day: 'Fri', violations: 10, accepted: 7, rejected: 3 },
     { day: 'Sat', violations: 4, accepted: 3, rejected: 1 },
-    { day: 'Sun', violations: 3, accepted: 1, rejected: 2 }
+    { day: 'Sun', violations: 12, accepted: 1, rejected: 0 }
   ]
 };
 
