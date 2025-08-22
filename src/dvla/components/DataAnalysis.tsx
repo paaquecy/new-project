@@ -33,6 +33,7 @@ const DataAnalysis: React.FC = () => {
       setError(null);
 
       const response = await unifiedAPI.getDVLAAnalytics();
+      console.log('Analytics API response:', response);
       if (response.data) {
         setAnalytics(response.data);
       } else {
