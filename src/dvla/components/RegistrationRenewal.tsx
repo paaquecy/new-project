@@ -46,6 +46,15 @@ const RegistrationRenewal: React.FC = () => {
         unifiedAPI.getDVLARenewals()
       ]);
 
+      console.log('API Responses:', {
+        vehiclesResponse,
+        renewalsResponse,
+        vehiclesDataType: typeof vehiclesResponse.data,
+        renewalsDataType: typeof renewalsResponse.data,
+        vehiclesIsArray: Array.isArray(vehiclesResponse.data),
+        renewalsIsArray: Array.isArray(renewalsResponse.data)
+      });
+
       if (vehiclesResponse.data && renewalsResponse.data) {
         const vehicles = Array.isArray(vehiclesResponse.data) ? vehiclesResponse.data : [];
         const renewals = Array.isArray(renewalsResponse.data) ? renewalsResponse.data : [];
