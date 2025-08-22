@@ -210,6 +210,86 @@ export const mockNotifications: Notification[] = [
     type: 'system',
     read: true,
     createdAt: '2025-01-19T09:00:00Z'
+  },
+  {
+    id: '4',
+    message: 'New violation submitted by Officer Robert Taylor',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T16:35:00Z',
+    violationId: '5'
+  },
+  {
+    id: '5',
+    message: 'New violation submitted by Officer Jennifer Adams',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T09:20:00Z',
+    violationId: '6'
+  },
+  {
+    id: '6',
+    message: 'New violation submitted by Officer Kevin Thompson',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T12:50:00Z',
+    violationId: '7'
+  },
+  {
+    id: '7',
+    message: 'New violation submitted by Officer Patricia Williams',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T07:25:00Z',
+    violationId: '8'
+  },
+  {
+    id: '8',
+    message: 'New violation submitted by Officer James Anderson',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T13:35:00Z',
+    violationId: '9'
+  },
+  {
+    id: '9',
+    message: 'New violation submitted by Officer Maria Garcia',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T19:50:00Z',
+    violationId: '10'
+  },
+  {
+    id: '10',
+    message: 'New violation submitted by Officer Daniel Rodriguez',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T22:15:00Z',
+    violationId: '11'
+  },
+  {
+    id: '11',
+    message: 'New violation submitted by Officer Angela Moore',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T15:30:00Z',
+    violationId: '12'
+  },
+  {
+    id: '12',
+    message: 'New violation submitted by Officer Steven Clark',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T10:45:00Z',
+    violationId: '13'
+  },
+  {
+    id: '13',
+    message: 'New violation submitted by Officer Nancy Lewis',
+    type: 'new_violation',
+    read: false,
+    createdAt: '2025-01-20T12:00:00Z',
+    violationId: '14'
   }
 ];
 
