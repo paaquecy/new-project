@@ -1,4 +1,15 @@
 import { supabase } from '../lib/supabase';
+import {
+  addUser as addUserToStorage,
+  authenticateUser as authenticateUserFromStorage,
+  isUsernameExists as checkUsernameInStorage,
+  approveUser as approveUserInStorage,
+  rejectUser as rejectUserInStorage,
+  getPendingUsers as getPendingUsersFromStorage,
+  getApprovedUsers as getApprovedUsersFromStorage,
+  getAllUsers,
+  initializeDemoUsers
+} from '../utils/userStorage';
 
 export interface UserAccount {
   id: string;
