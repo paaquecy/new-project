@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  Car, 
+import React, { useState, useMemo } from 'react';
+import {
+  BarChart3,
+  TrendingUp,
+  Users,
+  Car,
   AlertTriangle,
   FileText,
   Download,
@@ -14,7 +14,8 @@ import {
   TrendingDown,
   Minus
 } from 'lucide-react';
-import { fetchAnalyticsData, generateReport, exportData, AnalyticsData } from '../utils/analyticsService';
+import { generateReport, exportData } from '../utils/analyticsService';
+import { useData } from '../contexts/DataContext';
 
 const AnalyticsReporting: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
