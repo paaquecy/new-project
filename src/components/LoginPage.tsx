@@ -193,20 +193,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
           </form>
 
           {/* Informative Text */}
-          <div className="mt-4 sm:mt-6 space-y-2">
-            <div className="flex items-center text-sm text-gray-500">
-              <Info size={16} className="mr-2 text-blue-500" />
-              <span>Passwords are case-sensitive.</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-500">
-              <Info size={16} className="mr-2 text-yellow-500" />
-              <span>Account locks after 5 failed attempts.</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-500">
-              <Info size={16} className="mr-2 text-red-500" />
-              <span>Session expires after 30 minutes of inactivity.</span>
-            </div>
-          </div>
 
           {/* Registration Link */}
           <div className="mt-4 sm:mt-6 text-center">
