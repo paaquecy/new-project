@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useData, ViolationRecord } from '../contexts/DataContext';
 
 interface Violation {
   id: string;
