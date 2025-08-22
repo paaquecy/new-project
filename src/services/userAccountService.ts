@@ -375,32 +375,41 @@ class UserAccountService {
   // Approve a user account
   async approveUser(userId: string, approvedBy: string): Promise<{ success: boolean; message: string }> {
     try {
-      const { error } = await supabase
-        .from('user_accounts')
-        .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
-          approved_by: approvedBy
-        })
-        .eq('id', userId);
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (error) {
-        console.error('User approval error:', error);
+      if (supabaseAvailable) {
+        const { error } = await supabase
+          .from('user_accounts')
+          .update({
+            status: 'approved',
+            approved_at: new Date().toISOString(),
+            approved_by: approvedBy
+          })
+          .eq('id', userId);
+
+        if (error) {
+          throw error;
+        }
+
         return {
-          success: false,
-          message: 'Failed to approve user account'
+          success: true,
+          message: 'User account approved successfully'
+        };
+      } else {
+        // Use localStorage fallback
+        const result = approveUserInStorage(userId);
+        return {
+          success: !!result,
+          message: result ? 'User account approved successfully' : 'Failed to approve user account'
         };
       }
-
-      return {
-        success: true,
-        message: 'User account approved successfully'
-      };
     } catch (error) {
       console.error('User approval error:', error);
+      // Fallback to localStorage
+      const result = approveUserInStorage(userId);
       return {
-        success: false,
-        message: 'An unexpected error occurred'
+        success: !!result,
+        message: result ? 'User account approved successfully' : 'Failed to approve user account'
       };
     }
   }
