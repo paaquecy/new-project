@@ -18,6 +18,7 @@ import { customYOLODetector } from '../utils/customModelDetection';
 import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
 import { DetectionDiagnostics } from '../utils/detectionDiagnostics';
 import { useData } from '../../contexts/DataContext';
+import { detectGhanaNumberPlate } from '../../services/ghanaPlateDetection';
 
 const VehicleScanner = () => {
   const { lookupVehicle, api } = useData();
