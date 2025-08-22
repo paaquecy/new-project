@@ -29,7 +29,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
     console.log('Username changed to:', e.target.value);
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputValue>) => {
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
     setErrorMessage(''); // Clear error when user types
     console.log('Password changed');
