@@ -149,22 +149,56 @@ const VehicleScanner = () => {
     }
   };
 
-  const handleManualLookup = () => {
+  const handleManualLookup = async () => {
     if (plateInput.trim()) {
       setIsScanning(true);
-      
-      // Simulate lookup process
-      setTimeout(() => {
-        const mockResults = {
+
+      try {
+        // Look up vehicle information using unified API
+        const vehicleResponse = await unifiedAPI.lookupVehicle(plateInput.trim());
+
+        if (vehicleResponse.data) {
+          const vehicle = vehicleResponse.data;
+          // Also check for violations
+          const violationResponse = await unifiedAPI.getViolations(plateInput.trim());
+          const hasViolations = violationResponse.data && violationResponse.data.length > 0;
+
+          const scanResults = {
+            plateNumber: plateInput.toUpperCase(),
+            vehicleModel: vehicle.model || 'Unknown',
+            owner: vehicle.owner_name || 'Unknown',
+            status: hasViolations ? `${violationResponse.data!.length} Outstanding Violation(s)` : 'No Violations',
+            statusType: hasViolations ? 'violation' : 'clean'
+          };
+
+          setScanResults(scanResults);
+        } else {
+          // Vehicle not found in database
+          const scanResults = {
+            plateNumber: plateInput.toUpperCase(),
+            vehicleModel: 'Unknown',
+            owner: 'Unknown',
+            status: 'Vehicle Not Registered',
+            statusType: 'violation'
+          };
+
+          setScanResults(scanResults);
+        }
+      } catch (apiError) {
+        console.error('Error looking up vehicle:', apiError);
+        // Fallback to error state
+        const scanResults = {
           plateNumber: plateInput.toUpperCase(),
-          vehicleModel: '2020 Toyota Camry',
-          owner: 'Ayam Idumba',
-          status: 'Outstanding Parking Ticket',
+          vehicleModel: 'Unknown',
+          owner: 'Unknown',
+          status: 'Lookup Failed',
           statusType: 'violation'
         };
-        setScanResults(mockResults);
-        setIsScanning(false);
-      }, 2000);
+
+        setScanResults(scanResults);
+      }
+
+      setIsScanning(false);
     }
   };
 
