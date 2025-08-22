@@ -254,7 +254,11 @@ const RegistrationRenewal: React.FC = () => {
             </button>
             
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+              <div className={`absolute right-0 mt-2 w-full border rounded-lg shadow-lg z-10 ${
+                darkMode
+                  ? 'bg-gray-700 border-gray-600'
+                  : 'bg-white border-gray-200'
+              }`}>
                 {statusOptions.map((option) => (
                   <button
                     key={option}
