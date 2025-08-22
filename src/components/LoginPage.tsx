@@ -42,8 +42,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(''); // Clear any previous error
+
     if (!username || !password) {
-      alert('Please enter both username and password');
+      setErrorMessage('Please enter both username and password');
       return;
     }
 
