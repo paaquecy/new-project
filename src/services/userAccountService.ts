@@ -531,45 +531,56 @@ class UserAccountService {
   // Initialize demo data if no users exist
   async initializeDemoData(): Promise<void> {
     try {
-      // Check if any users exist
-      const { data: existingUsers, error } = await supabase
-        .from('user_accounts')
-        .select('id')
-        .limit(1);
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (error || (existingUsers && existingUsers.length === 0)) {
-        // Insert demo users if none exist
-        const demoUsers = [
-          {
-            first_name: 'System',
-            last_name: 'Administrator',
-            email: 'admin@platerecognition.gov.gh',
-            telephone: '+233200000000',
-            account_type: 'admin',
-            status: 'approved',
-            password_hash: await this.hashPassword('Wattaddo020'),
-            approved_at: new Date().toISOString()
-          },
-          {
-            first_name: 'John',
-            last_name: 'Supervisor',
-            email: 'supervisor@platerecognition.gov.gh',
-            telephone: '+233200000001',
-            account_type: 'supervisor',
-            status: 'approved',
-            password_hash: await this.hashPassword('Killerman020'),
-            approved_at: new Date().toISOString()
-          }
-        ];
-
-        await supabase
+      if (supabaseAvailable) {
+        // Check if any users exist in Supabase
+        const { data: existingUsers, error } = await supabase
           .from('user_accounts')
-          .insert(demoUsers);
+          .select('id')
+          .limit(1);
 
-        console.log('Demo users initialized');
+        if (error || (existingUsers && existingUsers.length === 0)) {
+          // Insert demo users if none exist
+          const demoUsers = [
+            {
+              first_name: 'System',
+              last_name: 'Administrator',
+              email: 'admin@platerecognition.gov.gh',
+              telephone: '+233200000000',
+              account_type: 'admin',
+              status: 'approved',
+              password_hash: await this.hashPassword('Wattaddo020'),
+              approved_at: new Date().toISOString()
+            },
+            {
+              first_name: 'John',
+              last_name: 'Supervisor',
+              email: 'supervisor@platerecognition.gov.gh',
+              telephone: '+233200000001',
+              account_type: 'supervisor',
+              status: 'approved',
+              password_hash: await this.hashPassword('Killerman020'),
+              approved_at: new Date().toISOString()
+            }
+          ];
+
+          await supabase
+            .from('user_accounts')
+            .insert(demoUsers);
+
+          console.log('Demo users initialized in Supabase');
+        }
+      } else {
+        // Use localStorage fallback
+        initializeDemoUsers();
+        console.log('Demo users initialized in localStorage');
       }
     } catch (error) {
       console.error('Error initializing demo data:', error);
+      // Fallback to localStorage
+      initializeDemoUsers();
+      console.log('Demo users initialized in localStorage (fallback)');
     }
   }
 }
