@@ -30,6 +30,7 @@ import './dvla/index.css';
 import './police/index.css';
 import type { PendingApproval } from './components/PendingApprovalsTable';
 import { initializeDemoUsers, getPendingUsers } from './utils/userStorage';
+import { userAccountService } from './services/userAccountService';
 import { initializeDemoAuditLogs, logAuth, logAdmin, logSystem } from './utils/auditLog';
 import {
   initializeSession,
