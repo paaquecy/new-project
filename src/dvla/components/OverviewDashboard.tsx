@@ -4,8 +4,6 @@ import StatCard from './StatCard';
 import ActivityCard from './ActivityCard';
 import ExpirationCard from './ExpirationCard';
 import DataQualityCard from './DataQualityCard';
-import SystemHealthCard from './SystemHealthCard';
-import StatusBar from './StatusBar';
 import { Car, Plus, RefreshCw } from 'lucide-react';
 
 const OverviewDashboard: React.FC = () => {
@@ -44,10 +42,6 @@ const OverviewDashboard: React.FC = () => {
         <DataQualityCard />
       </div>
 
-      {/* Bottom Row - System Health */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <SystemHealthCard />
-      </div>
     </div>
   );
 };
