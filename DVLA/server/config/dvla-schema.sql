@@ -206,11 +206,21 @@ USING (bucket_id = 'dvla-payment-proofs');
 -- Insert default admin user
 INSERT INTO dvla_users (username, email, password_hash, full_name, role)
 VALUES (
-    'admin',
+    '4231220075',
     'admin@dvla.gov.uk',
-    crypt('admin123', gen_salt('bf')),
+    crypt('Wattaddo020.', gen_salt('bf')),
     'System Administrator',
     'admin'
+) ON CONFLICT (username) DO NOTHING;
+
+-- Insert default DVLA user
+INSERT INTO dvla_users (username, email, password_hash, full_name, role)
+VALUES (
+    '0987654321',
+    'dvla@dvla.gov.uk',
+    crypt('Bigfish020.', gen_salt('bf')),
+    'DVLA Officer',
+    'user'
 ) ON CONFLICT (username) DO NOTHING;
 
 -- Insert sample vehicle data
