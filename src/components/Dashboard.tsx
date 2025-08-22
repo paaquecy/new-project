@@ -176,17 +176,71 @@ const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Performance Metrics */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className={`rounded-lg shadow-sm border p-4 sm:p-6 ${
+          darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-200'
+        }`}>
           <div className="flex items-center mb-4">
-            <BarChart3 className="w-5 h-5 text-gray-500 mr-2" />
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Performance Metrics</h2>
+            <BarChart3 className={`w-5 h-5 mr-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            <h2 className={`text-base sm:text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Performance Metrics - Monthly Growth & Trends</h2>
           </div>
-          <div className="h-48 sm:h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500 font-medium">Chart: Monthly Growth & Trends</p>
-              <p className="text-sm text-gray-400 mt-1">Chart visualization will be displayed here</p>
-            </div>
+          <div className="h-48 sm:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={monthlyGrowthData}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#f3f4f6'} />
+                <XAxis
+                  dataKey="month"
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <YAxis
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                    border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                    borderRadius: '8px',
+                    color: darkMode ? '#ffffff' : '#000000'
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="vehicles"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  name="Vehicles Scanned"
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="violations"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  name="Violations Flagged"
+                  dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="resolvedViolations"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  name="Violations Resolved"
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
