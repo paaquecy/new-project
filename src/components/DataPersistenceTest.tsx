@@ -7,16 +7,14 @@ const DataPersistenceTest: React.FC = () => {
     users,
     violations,
     vehicles,
-    fines,
-    notifications
+    fines
   } = useData();
 
   const dataStats = {
     users: users.length,
     violations: violations.length,
     vehicles: vehicles.length,
-    fines: fines.length,
-    notifications: notifications.length
+    fines: fines.length
   };
 
   return (
