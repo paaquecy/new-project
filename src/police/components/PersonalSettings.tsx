@@ -64,6 +64,63 @@ const PersonalSettings = () => {
   const [saveStatus, setSaveStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load user profile data on component mount
+  useEffect(() => {
+    loadUserProfile();
+    loadUserSettings();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await unifiedAPI.getCurrentUserProfile();
+      if (response.data) {
+        setProfileData({
+          fullName: response.data.full_name || 'John Mensah',
+          email: response.data.email || 'johnmensah@police.gov',
+          badgeNumber: response.data.badge_number || 'B001',
+          rank: response.data.rank || 'Officer',
+          department: response.data.department || 'Traffic Division',
+          phone: response.data.phone || '+233 55 24 9824',
+          address: response.data.address || '123 Police Station Rd, City, State 12345'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      // Keep default values if loading fails
+    }
+  };
+
+  const loadUserSettings = () => {
+    // Load settings from localStorage if available
+    const savedProfile = localStorage.getItem('user_profile_data');
+    const savedNotifications = localStorage.getItem('user_notification_settings');
+    const savedPreferences = localStorage.getItem('user_system_preferences');
+
+    if (savedProfile) {
+      try {
+        setProfileData(JSON.parse(savedProfile));
+      } catch (error) {
+        console.error('Failed to parse saved profile data:', error);
+      }
+    }
+
+    if (savedNotifications) {
+      try {
+        setNotificationSettings(JSON.parse(savedNotifications));
+      } catch (error) {
+        console.error('Failed to parse saved notification settings:', error);
+      }
+    }
+
+    if (savedPreferences) {
+      try {
+        setSystemPreferences(JSON.parse(savedPreferences));
+      } catch (error) {
+        console.error('Failed to parse saved system preferences:', error);
+      }
+    }
+  };
+
   const handleProfileChange = (field, value) => {
     setProfileData(prev => ({
       ...prev,
