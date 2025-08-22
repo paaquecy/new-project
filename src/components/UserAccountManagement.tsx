@@ -24,17 +24,18 @@ interface UserAccountManagementProps {
   searchQuery?: string; // Search query from parent component
 }
 
-const UserAccountManagement: React.FC<UserAccountManagementProps> = ({ currentUserId }) => {
+const UserAccountManagement: React.FC<UserAccountManagementProps> = ({ currentUserId, searchQuery }) => {
   const [pendingUsers, setPendingUsers] = useState<UserAccount[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   const [showApproved, setShowApproved] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(searchQuery || '');
   const [filterType, setFilterType] = useState<'all' | 'police' | 'dvla'>('all');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [userToReject, setUserToReject] = useState<UserAccount | null>(null);
+  const [showSupabaseNotice, setShowSupabaseNotice] = useState(false);
 
   useEffect(() => {
     loadUsers();
