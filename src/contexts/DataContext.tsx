@@ -261,10 +261,28 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         }
       }
 
-      // Initialize empty arrays for other data types
+      // Initialize empty arrays for other data types, with supervisor mock fallback for notifications
       setUsers([]);
       setFines([]);
-      setNotifications([]);
+
+      // Load supervisor mock notifications as fallback
+      try {
+        const { mockNotifications } = await import('../supervisor/data/mockData');
+        const fallbackNotifications: Notification[] = mockNotifications.map((n: any) => ({
+          id: n.id || '',
+          title: n.type === 'new_violation' ? 'New Violation' : 'System Notification',
+          message: n.message || '',
+          type: n.type === 'new_violation' ? 'info' : n.type === 'system' ? 'info' : 'info',
+          timestamp: n.createdAt || '',
+          read: n.read || false,
+          system: 'Supervisor App'
+        }));
+        setNotifications(fallbackNotifications);
+        console.log('Loaded supervisor fallback notifications:', fallbackNotifications.length);
+      } catch (err) {
+        console.warn('Failed to import supervisor notification fallback', err);
+        setNotifications([]);
+      }
 
     } catch (error) {
       console.error('Error loading data:', error);
