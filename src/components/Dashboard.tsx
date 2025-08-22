@@ -1,44 +1,106 @@
-import React from 'react';
-import { 
-  Car, 
-  AlertTriangle, 
-  CheckCircle, 
+import React, { useMemo } from 'react';
+import {
+  Car,
+  AlertTriangle,
+  CheckCircle,
   TrendingUp,
   Clock,
   Calendar,
   BarChart3,
   Bell
 } from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from 'recharts';
+import { useData } from '../contexts/DataContext';
 
 interface DashboardProps {
   darkMode: boolean;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
+  const { vehicles, violations, fines } = useData();
+
+  // Calculate monthly growth data from actual database data
+  const monthlyGrowthData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+
+    return monthNames.map((month, index) => {
+      const monthStart = new Date(currentYear, index, 1);
+      const monthEnd = new Date(currentYear, index + 1, 0);
+
+      // Filter vehicles by registration date for this month
+      const monthVehicles = vehicles.filter(vehicle => {
+        if (!vehicle.registrationDate) return false;
+        const regDate = new Date(vehicle.registrationDate);
+        return regDate >= monthStart && regDate <= monthEnd;
+      });
+
+      // Filter violations by timestamp for this month
+      const monthViolations = violations.filter(violation => {
+        if (!violation.timestamp) return false;
+        const violationDate = new Date(violation.timestamp);
+        return violationDate >= monthStart && violationDate <= monthEnd;
+      });
+
+      // Count resolved violations (approved status)
+      const resolvedViolations = monthViolations.filter(violation =>
+        violation.status === 'approved'
+      );
+
+      return {
+        month,
+        vehicles: monthVehicles.length,
+        violations: monthViolations.length,
+        resolvedViolations: resolvedViolations.length
+      };
+    });
+  }, [vehicles, violations]);
+
+  // Calculate KPI data from actual database data
+  const activeViolations = violations.filter(v => v.status === 'pending').length;
+  const resolvedViolations = violations.filter(v => v.status === 'approved').length;
+  const totalVehicles = vehicles.length;
+
+  // Calculate monthly growth percentage
+  const currentMonth = monthlyGrowthData[new Date().getMonth()];
+  const previousMonth = monthlyGrowthData[new Date().getMonth() - 1] || monthlyGrowthData[11];
+  const monthlyGrowthPercent = previousMonth.vehicles > 0
+    ? Math.round(((currentMonth.vehicles - previousMonth.vehicles) / previousMonth.vehicles) * 100)
+    : 0;
+
   const kpiData = [
     {
-      value: '1,234',
-      label: 'Total Vehicles Scanned',
+      value: totalVehicles.toLocaleString(),
+      label: 'Total Vehicles Registered',
       icon: Car,
       color: 'text-blue-600'
     },
     {
-      value: '45',
+      value: activeViolations.toString(),
       label: 'Active Violations',
       icon: AlertTriangle,
       color: 'text-red-600'
     },
     {
-      value: '987',
+      value: resolvedViolations.toString(),
       label: 'Resolved Violations',
       icon: CheckCircle,
       color: 'text-green-600'
     },
     {
-      value: '+12%',
+      value: `${monthlyGrowthPercent >= 0 ? '+' : ''}${monthlyGrowthPercent}%`,
       label: 'Monthly Growth',
       icon: TrendingUp,
-      color: 'text-purple-600'
+      color: monthlyGrowthPercent >= 0 ? 'text-green-600' : 'text-red-600'
     }
   ];
 
@@ -151,17 +213,71 @@ const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
       {/* Bottom Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Performance Metrics */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className={`rounded-lg shadow-sm border p-4 sm:p-6 ${
+          darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-200'
+        }`}>
           <div className="flex items-center mb-4">
-            <BarChart3 className="w-5 h-5 text-gray-500 mr-2" />
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Performance Metrics</h2>
+            <BarChart3 className={`w-5 h-5 mr-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            <h2 className={`text-base sm:text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Performance Metrics - Monthly Growth & Trends</h2>
           </div>
-          <div className="h-48 sm:h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500 font-medium">Chart: Monthly Growth & Trends</p>
-              <p className="text-sm text-gray-400 mt-1">Chart visualization will be displayed here</p>
-            </div>
+          <div className="h-48 sm:h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={monthlyGrowthData}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#f3f4f6'} />
+                <XAxis
+                  dataKey="month"
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <YAxis
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  fontSize={12}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                    border: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`,
+                    borderRadius: '8px',
+                    color: darkMode ? '#ffffff' : '#000000'
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="vehicles"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  name="Vehicles Scanned"
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="violations"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  name="Violations Flagged"
+                  dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="resolvedViolations"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  name="Violations Resolved"
+                  dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

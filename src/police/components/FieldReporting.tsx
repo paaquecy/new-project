@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
-import { 
-  FileText, 
-  Camera, 
-  Send, 
+import React, { useState, useRef } from 'react';
+import {
+  FileText,
+  Camera,
+  Send,
   ChevronDown,
   Clock,
   CheckCircle,
   AlertCircle,
-  Eye
+  Eye,
+  Upload,
+  X,
+  Image as ImageIcon,
+  Video
 } from 'lucide-react';
 
 const FieldReporting = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [formData, setFormData] = useState({
     reportTitle: '',
     reportType: '',
@@ -20,6 +28,16 @@ const FieldReporting = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [attachedMedia, setAttachedMedia] = useState<Array<{
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    name: string;
+    size: number;
+  }>>([]);
+  const [showMediaOptions, setShowMediaOptions] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
 
   const reportTypes = [
     'Traffic Stop',
@@ -80,8 +98,114 @@ const FieldReporting = () => {
   };
 
   const handleAttachMedia = () => {
-    // Simulate media attachment process
-    alert('Media attachment feature would open camera/file picker here');
+    setShowMediaOptions(true);
+  };
+
+  const handleFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+    setShowMediaOptions(false);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+          const url = URL.createObjectURL(file);
+          const newMedia = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            type: file.type.startsWith('image/') ? 'image' as const : 'video' as const,
+            url,
+            name: file.name,
+            size: file.size
+          };
+          setAttachedMedia(prev => [...prev, newMedia]);
+        }
+      });
+    }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCameraCapture = async () => {
+    setShowMediaOptions(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+      setCameraStream(stream);
+      setShowCameraCapture(true);
+
+      // Set up video stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please check permissions and try again.');
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const newMedia = {
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              type: 'image' as const,
+              url,
+              name: `photo_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.jpg`,
+              size: blob.size
+            };
+            setAttachedMedia(prev => [...prev, newMedia]);
+          }
+        }, 'image/jpeg', 0.8);
+      }
+    }
+    closeCameraCapture();
+  };
+
+  const closeCameraCapture = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setShowCameraCapture(false);
+  };
+
+  const removeMedia = (id: string) => {
+    setAttachedMedia(prev => {
+      const mediaToRemove = prev.find(m => m.id === id);
+      if (mediaToRemove) {
+        URL.revokeObjectURL(mediaToRemove.url);
+      }
+      return prev.filter(m => m.id !== id);
+    });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const handleSubmitReport = () => {
@@ -258,6 +382,42 @@ const FieldReporting = () => {
               />
             </div>
 
+            {/* Attached Media Display */}
+            {attachedMedia.length > 0 && (
+              <div className="space-y-2">
+                <label className="block text-sm lg:text-base font-medium text-gray-700">
+                  Attached Media ({attachedMedia.length})
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {attachedMedia.map((media) => (
+                    <div key={media.id} className="relative border border-gray-200 rounded-lg overflow-hidden">
+                      {media.type === 'image' ? (
+                        <img
+                          src={media.url}
+                          alt={media.name}
+                          className="w-full h-24 object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-24 bg-gray-100 flex items-center justify-center">
+                          <Video className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeMedia(media.id)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <div className="p-2 bg-white">
+                        <p className="text-xs text-gray-600 truncate">{media.name}</p>
+                        <p className="text-xs text-gray-400">{formatFileSize(media.size)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="space-y-3 lg:space-y-4 pt-2 lg:pt-4">
               <button
@@ -367,6 +527,90 @@ const FieldReporting = () => {
           ))}
         </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Media Options Modal */}
+      {showMediaOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Attach Media</h3>
+            <div className="space-y-3">
+              <button
+                onClick={handleCameraCapture}
+                className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Camera className="w-5 h-5 mr-2" />
+                Take Photo
+              </button>
+              <button
+                onClick={handleFileSelect}
+                className="w-full flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                Choose Files
+              </button>
+              <button
+                onClick={() => setShowMediaOptions(false)}
+                className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Camera Capture Modal */}
+      {showCameraCapture && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Take Photo</h3>
+              <button
+                onClick={closeCameraCapture}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="relative mb-4">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full rounded-lg"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={capturePhoto}
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Capture Photo
+              </button>
+              <button
+                onClick={closeCameraCapture}
+                className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

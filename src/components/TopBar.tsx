@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Bell, User } from 'lucide-react';
 import NotificationsModal from './NotificationsModal';
 import UserProfileModal from './UserProfileModal';
+import { useData } from '../contexts/DataContext';
 
 interface TopBarProps {
   title: string;
@@ -13,6 +14,9 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ title, onSearch, darkMode, onNavigate }) => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { getUnreadNotifications } = useData();
+
+  const unreadCount = getUnreadNotifications().length;
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSearch(e.target.value);
@@ -68,9 +72,11 @@ const TopBar: React.FC<TopBarProps> = ({ title, onSearch, darkMode, onNavigate }
               : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
           }`} onClick={handleNotificationClick}>
             <Bell size={20} />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-              3
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
           
           {/* User Profile */}

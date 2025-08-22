@@ -18,7 +18,6 @@ import { customYOLODetector } from '../utils/customModelDetection';
 import { yoloV8PlateDetector } from '../utils/yoloV8PlateDetection';
 import { DetectionDiagnostics } from '../utils/detectionDiagnostics';
 import { useData } from '../../contexts/DataContext';
-import DetectionMetrics from './DetectionMetrics';
 
 const VehicleScanner = () => {
   const { lookupVehicle, api } = useData();
@@ -536,7 +535,7 @@ const VehicleScanner = () => {
     }
 
     // First, capture the current camera frame
-    console.log('📷 Capturing current camera frame...');
+    console.log('�� Capturing current camera frame...');
 
     // Trigger capture flash effect
     setCaptureFlash(true);
@@ -736,23 +735,12 @@ const VehicleScanner = () => {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Detection Metrics */}
-      <DetectionMetrics />
 
       {/* Row 1 - Live Camera Feed */}
       <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
         <h3 className="text-base lg:text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <Camera className="w-4 lg:w-5 h-4 lg:h-5 mr-2 text-blue-600" />
-          Live Camera Feed with {
-            detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
-            detectorType === 'custom' ? 'Custom Trained YOLO' :
-            detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'
-          } Plate Detection
-          {(detectorType === 'gemini' || detectorType === 'yolo') && (
-            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-              YOLOv8+OCR
-            </span>
-          )}
+          Live Camera Feed
           {detectorType === 'custom' && (
             <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
               Custom Model
@@ -864,9 +852,7 @@ const VehicleScanner = () => {
                     detectorType === 'yolo' ? 'bg-purple-600' : 'bg-orange-600'
                   }`}>
                     <div className="animate-pulse w-2 h-2 bg-white rounded-full mr-2"></div>
-                    🔍 {detectorType === 'gemini' ? 'YOLOv8+OCR Active' :
-                         detectorType === 'custom' ? 'Custom AI Active' :
-                         detectorType === 'yolo' ? 'YOLOv8+OCR Active' : 'Detection Active'}
+                    🔍 Detection Active
                   </div>
                 )}
 
@@ -947,9 +933,7 @@ const VehicleScanner = () => {
                   detectorType === 'custom' ? 'bg-green-500' :
                   detectorType === 'yolo' ? 'bg-purple-500' : 'bg-orange-500'
                 }`}></div>
-                {detectorType === 'gemini' ? 'YOLOv8+OCR' :
-                 detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple'} Status: {detectionResult ? 'Active' : 'Standby'}
+                Detection Status: {detectionResult ? 'Active' : 'Standby'}
               </span>
             </div>
             <span className="text-gray-400">
@@ -957,25 +941,6 @@ const VehicleScanner = () => {
             </span>
           </div>
 
-          {/* Debug Information Panel */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 text-xs">
-            <div className="font-semibold text-gray-700 mb-2">Debug Information:</div>
-            <div className="grid grid-cols-2 gap-2 text-gray-600">
-              <span>Component Mounted: {isMounted ? '✅' : '❌'}</span>
-              <span>Video Ref: {videoRef.current ? '✅' : '❌'}</span>
-              <span>Camera Active: {cameraActive ? '✅' : '❌'}</span>
-              <span>Detection Active: {isScanning ? '🔍' : '⏸️'}</span>
-              <span>Detection Attempts: {detectionAttempts}</span>
-              <span>Last Detection: {lastDetectionTime ? lastDetectionTime.toLocaleTimeString() : 'None'}</span>
-              <span>Permission: {permissionStatus}</span>
-              <span>HTTPS: {window.isSecureContext ? '✅' : '❌'}</span>
-            </div>
-            {cameraError && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700">
-                Error: {cameraError}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Hidden canvas for frame capture */}
@@ -1076,9 +1041,7 @@ const VehicleScanner = () => {
                 detectorType === 'custom' ? 'bg-green-100 text-green-700' :
                 detectorType === 'yolo' ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'
               }`}>
-                {detectorType === 'gemini' ? 'YOLOv8+OCR AI' :
-                 detectorType === 'custom' ? 'Custom Model' :
-                 detectorType === 'yolo' ? 'YOLOv8+OCR' : 'Simple Detection'}
+                Detection
               </span>
             )}
           </h3>
@@ -1143,39 +1106,6 @@ const VehicleScanner = () => {
                 </>
               )}
 
-              {/* Detector Status */}
-              {detectorStatus && (detectorType === 'yolo' || detectorType === 'gemini') && (
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg border-t border-gray-200">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Detection System Status</h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span>Object Detection:</span>
-                      <span className={`px-2 py-1 rounded ${detectorStatus.hasObjectDetection ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {detectorStatus.hasObjectDetection ? 'COCO-SSD Active' : 'Fallback Mode'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>OCR Engine:</span>
-                      <span className={`px-2 py-1 rounded ${detectorStatus.hasOCR ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {detectorStatus.hasOCR ? 'Tesseract.js' : 'Basic Analysis'}
-                      </span>
-                    </div>
-                    {(!detectorStatus.hasObjectDetection || !detectorStatus.hasOCR) && (
-                      <button
-                        onClick={async () => {
-                          const diagnostics = await DetectionDiagnostics.getDiagnosticInfo();
-                          DetectionDiagnostics.logDiagnostics(diagnostics);
-                          const networkTest = await DetectionDiagnostics.runNetworkTest();
-                          console.log('🌐 Network test:', networkTest);
-                        }}
-                        className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200"
-                      >
-                        Run Diagnostics
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <button

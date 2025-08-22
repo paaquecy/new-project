@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useData, ViolationRecord } from '../contexts/DataContext';
 
 interface Violation {
   id: string;
@@ -24,7 +25,10 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
   statusFilter,
   dateFilter
 }) => {
-  const [violations, setViolations] = useState<Violation[]>([
+  const { violations: dbViolations, updateViolation } = useData();
+
+  // Mock data as fallback
+  const mockViolations: Violation[] = [
     {
       id: 'VIO001',
       plateNumber: 'OT-2387-21',
@@ -65,7 +69,41 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
       location: 'Downtown Area',
       status: 'open'
     }
-  ]);
+  ];
+
+  // Convert database violations to local format
+  const convertDbViolationToLocal = (dbViolation: ViolationRecord): Violation => {
+    // Map database status to local status
+    const statusMap: Record<string, 'open' | 'pending' | 'resolved'> = {
+      'pending': 'pending',
+      'approved': 'resolved',
+      'rejected': 'open'
+    };
+
+    return {
+      id: dbViolation.id,
+      plateNumber: dbViolation.plateNumber,
+      type: dbViolation.violationType,
+      dateTime: new Date(dbViolation.timestamp).toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      location: dbViolation.location,
+      status: statusMap[dbViolation.status] || 'open'
+    };
+  };
+
+  // Use database data if available, otherwise use mock data
+  const violations = useMemo(() => {
+    if (dbViolations && dbViolations.length > 0) {
+      return dbViolations.map(convertDbViolationToLocal);
+    }
+    return mockViolations;
+  }, [dbViolations]);
 
   const filteredViolations = useMemo(() => {
     return violations.filter(violation => {
@@ -92,13 +130,20 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
 
   const handleResolve = (violation: Violation) => {
     console.log(`Resolve clicked for #${violation.id}`);
-    setViolations(prev => 
-      prev.map(v => 
-        v.id === violation.id 
-          ? { ...v, status: 'resolved' as const }
-          : v
-      )
-    );
+
+    // If we have database violations, update through the database
+    if (dbViolations && dbViolations.length > 0) {
+      const dbViolation = dbViolations.find(v => v.id === violation.id);
+      if (dbViolation) {
+        const updatedViolation: ViolationRecord = {
+          ...dbViolation,
+          status: 'approved' // In database, 'approved' means resolved
+        };
+        updateViolation(updatedViolation);
+      }
+    }
+    // For mock data, we would update local state, but since we're using useMemo
+    // and database data takes precedence, this will be handled by the database update
   };
 
   const handleViewDetails = (violation: Violation) => {

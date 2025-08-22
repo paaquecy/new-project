@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Settings, 
+import React, { useState, useEffect } from 'react';
+import {
+  User,
+  Bell,
+  Shield,
+  Settings,
   Save,
   Camera,
   Eye,
@@ -11,6 +11,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { unifiedAPI } from '../../lib/unified-api';
 
 const PersonalSettings = () => {
   // Profile Settings State
@@ -63,6 +64,63 @@ const PersonalSettings = () => {
   const [saveStatus, setSaveStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Load user profile data on component mount
+  useEffect(() => {
+    loadUserProfile();
+    loadUserSettings();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await unifiedAPI.getCurrentUserProfile();
+      if (response.data) {
+        setProfileData({
+          fullName: response.data.full_name || 'John Mensah',
+          email: response.data.email || 'johnmensah@police.gov',
+          badgeNumber: response.data.badge_number || 'B001',
+          rank: response.data.rank || 'Officer',
+          department: response.data.department || 'Traffic Division',
+          phone: response.data.phone || '+233 55 24 9824',
+          address: response.data.address || '123 Police Station Rd, City, State 12345'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load user profile:', error);
+      // Keep default values if loading fails
+    }
+  };
+
+  const loadUserSettings = () => {
+    // Load settings from localStorage if available
+    const savedProfile = localStorage.getItem('user_profile_data');
+    const savedNotifications = localStorage.getItem('user_notification_settings');
+    const savedPreferences = localStorage.getItem('user_system_preferences');
+
+    if (savedProfile) {
+      try {
+        setProfileData(JSON.parse(savedProfile));
+      } catch (error) {
+        console.error('Failed to parse saved profile data:', error);
+      }
+    }
+
+    if (savedNotifications) {
+      try {
+        setNotificationSettings(JSON.parse(savedNotifications));
+      } catch (error) {
+        console.error('Failed to parse saved notification settings:', error);
+      }
+    }
+
+    if (savedPreferences) {
+      try {
+        setSystemPreferences(JSON.parse(savedPreferences));
+      } catch (error) {
+        console.error('Failed to parse saved system preferences:', error);
+      }
+    }
+  };
+
   const handleProfileChange = (field, value) => {
     setProfileData(prev => ({
       ...prev,
@@ -98,24 +156,115 @@ const PersonalSettings = () => {
     }));
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     setIsSaving(true);
     setSaveStatus('');
 
-    // Simulate save process
-    setTimeout(() => {
+    try {
+      // Save profile data to database
+      const profileUpdateData = {
+        full_name: profileData.fullName,
+        email: profileData.email,
+        phone: profileData.phone,
+        badge_number: profileData.badgeNumber,
+        rank: profileData.rank,
+        department: profileData.department,
+        address: profileData.address
+      };
+
+      const profileResponse = await unifiedAPI.updateUserProfile(profileUpdateData);
+
+      if (profileResponse.error) {
+        throw new Error('Failed to update profile');
+      }
+
+      // If password fields are filled, update password
+      if (securitySettings.currentPassword && securitySettings.newPassword) {
+        if (securitySettings.newPassword !== securitySettings.confirmPassword) {
+          throw new Error('New password and confirm password do not match');
+        }
+
+        const passwordResponse = await unifiedAPI.changePassword({
+          current_password: securitySettings.currentPassword,
+          new_password: securitySettings.newPassword
+        });
+
+        if (passwordResponse.error) {
+          throw new Error('Failed to change password');
+        }
+
+        // Clear password fields after successful change
+        setSecuritySettings(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }));
+      }
+
+      // Save to local storage for app state persistence
+      localStorage.setItem('user_profile_data', JSON.stringify(profileData));
+      localStorage.setItem('user_notification_settings', JSON.stringify(notificationSettings));
+      localStorage.setItem('user_system_preferences', JSON.stringify(systemPreferences));
+
       setIsSaving(false);
       setSaveStatus('success');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSaveStatus('');
       }, 3000);
-    }, 2000);
+
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setIsSaving(false);
+      setSaveStatus('error');
+      alert(`Failed to save settings: ${error.message}`);
+
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 5000);
+    }
   };
 
-  const handleChangeProfilePhoto = () => {
-    alert('Profile photo change feature would open camera/file picker here');
+  const handleChangeProfilePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await unifiedAPI.uploadProfilePicture(file);
+
+      if (response.data) {
+        // Update profile data with new picture URL
+        setProfileData(prev => ({
+          ...prev,
+          profilePicture: response.data.profile_picture_url
+        }));
+
+        alert('Profile picture updated successfully!');
+      } else {
+        throw new Error('Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      alert('Failed to upload profile picture. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -136,13 +285,16 @@ const PersonalSettings = () => {
             </div>
             <div className="text-center sm:text-left">
               <h4 className="text-base lg:text-lg font-semibold text-gray-800 mb-2">Profile Photo</h4>
-              <button
-                onClick={handleChangeProfilePhoto}
-                className="inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
+              <label className="inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer">
                 <Camera className="w-3 lg:w-4 h-3 lg:h-4 mr-2" />
                 Change Photo
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChangeProfilePhoto}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 
