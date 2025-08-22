@@ -199,19 +199,27 @@ class UserAccountService {
   // Check if username exists
   async checkUsernameExists(username: string, accountType: 'police' | 'dvla'): Promise<boolean> {
     try {
-      const column = accountType === 'police' ? 'badge_number' : 'id_number';
-      
-      const { data, error } = await supabase
-        .from('user_accounts')
-        .select('id')
-        .eq(column, username)
-        .eq('account_type', accountType)
-        .single();
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      return !error && data !== null;
+      if (supabaseAvailable) {
+        const column = accountType === 'police' ? 'badge_number' : 'id_number';
+
+        const { data, error } = await supabase
+          .from('user_accounts')
+          .select('id')
+          .eq(column, username)
+          .eq('account_type', accountType)
+          .single();
+
+        return !error && data !== null;
+      } else {
+        // Use localStorage fallback
+        return checkUsernameInStorage(username, accountType);
+      }
     } catch (error) {
       console.error('Username check error:', error);
-      return false;
+      // Fallback to localStorage if Supabase fails
+      return checkUsernameInStorage(username, accountType);
     }
   }
 
