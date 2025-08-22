@@ -246,7 +246,7 @@ const RegistrationRenewal: React.FC = () => {
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <span className="text-gray-700">{statusFilter}</span>
+              <span>{statusFilter}</span>
               <ChevronDown 
                 size={16} 
                 className={`text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
