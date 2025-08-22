@@ -191,7 +191,7 @@ export const TEST_VEHICLE_DATABASE: TestVehicle[] = [
   {
     id: "8",
     plate_number: "AA-1234-23",
-    reg_number: "AA-1234-23", 
+    reg_number: "AA-1234-23",
     make: "Mercedes-Benz",
     manufacturer: "Mercedes-Benz",
     model: "S-Class",
@@ -210,6 +210,29 @@ export const TEST_VEHICLE_DATABASE: TestVehicle[] = [
     vin: "JTDBL40E199000008",
     created_at: "2024-08-30T15:30:00Z",
     updated_at: "2024-08-30T15:30:00Z"
+  },
+  {
+    id: "9",
+    plate_number: "GE-7866-21",
+    reg_number: "GE-7866-21",
+    make: "Toyota",
+    manufacturer: "Toyota",
+    model: "Toyota",
+    year: 2021,
+    year_of_manufacture: 2021,
+    color: "White",
+    owner_name: "Jude Frimpong",
+    owner_address: "456 Liberation Road, Accra, Ghana",
+    owner_phone: "+233-24-567-8901",
+    owner_email: "jude.frimpong@email.com",
+    status: "active",
+    registration_status: "Valid",
+    registration_expiry: "2025-12-31",
+    insurance_status: "Valid",
+    insurance_expiry: "2025-06-30",
+    vin: "JTDBL40E199000009",
+    created_at: "2024-01-10T08:00:00Z",
+    updated_at: "2024-01-10T08:00:00Z"
   }
 ];
 

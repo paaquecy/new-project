@@ -1,6 +1,8 @@
 // Unified API configuration for all frontend apps
 // Connects to the Python FastAPI backend
 
+import { findVehicleByPlate, TEST_VEHICLE_DATABASE, logRegisteredPlates } from '../../../src/lib/testVehicleDatabase';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export interface ApiResponse<T> {
@@ -345,25 +347,31 @@ class UnifiedAPIClient {
     }
 
     if (endpoint.includes('/vehicles/') && !endpoint.includes('/dvla/')) {
-      return {
-        data: {
-          id: '1',
-          plate_number: 'GS-1657-20',
-          vin: 'TEST123456789',
-          make: 'Toyota',
-          model: 'Corolla',
-          year: 2023,
-          color: 'Blue',
-          owner_name: 'John Mensah',
-          owner_address: '123 Test Street',
-          registration_status: 'Valid',
-          registration_expiry: '2025-12-31',
-          insurance_status: 'Valid',
-          insurance_expiry: '2025-06-30',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        } as T
-      };
+      // Extract plate number from endpoint (e.g., /vehicles/GR-1234-23)
+      const plateNumber = endpoint.split('/vehicles/')[1];
+      console.log('🔍 Looking up plate in test database:', plateNumber);
+
+      // Log registered plates for reference in development
+      if (Math.random() < 0.1) { // Only log occasionally to avoid spam
+        logRegisteredPlates();
+      }
+
+      // Look up vehicle in test database
+      const vehicle = findVehicleByPlate(plateNumber);
+
+      if (vehicle) {
+        console.log('✅ Vehicle found in test database:', vehicle.plate_number, '-', vehicle.year, vehicle.make, vehicle.model);
+        return {
+          data: vehicle as T
+        };
+      } else {
+        console.log('❌ Vehicle not found in test database for plate:', plateNumber);
+        console.log('💡 Available plates:', TEST_VEHICLE_DATABASE.map(v => v.plate_number).join(', '));
+        return {
+          data: null as T,
+          error: 'Vehicle not found'
+        };
+      }
     }
 
     if (endpoint.includes('/violations') && options.method === 'GET') {
@@ -470,6 +478,10 @@ class UnifiedAPIClient {
 
   // Police/General Vehicle Operations
   async getVehicleByPlate(plateNumber: string): Promise<ApiResponse<Vehicle>> {
+    return this.request<Vehicle>(`/vehicles/${plateNumber}`);
+  }
+
+  async lookupVehicle(plateNumber: string): Promise<ApiResponse<Vehicle>> {
     return this.request<Vehicle>(`/vehicles/${plateNumber}`);
   }
 

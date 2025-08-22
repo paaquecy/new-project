@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, 
-  Scan, 
-  Eye, 
+import {
+  Search,
+  Scan,
+  Eye,
   Camera,
   CheckCircle,
   AlertCircle,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 import { plateDetector, PlateDetectionResult } from '../utils/plateDetection';
+import { unifiedAPI } from '../lib/unified-api';
 
 const VehicleScanner = () => {
   const [plateInput, setPlateInput] = useState('');
@@ -56,22 +57,57 @@ const VehicleScanner = () => {
 
     try {
       const result = await plateDetector.detectPlate(videoRef.current);
-      
+
       if (result && result.confidence > 0.7) {
         setDetectionResult(result);
-        
-        // Auto-populate scan results with detected plate
-        const mockResults = {
-          plateNumber: result.plateNumber,
-          vehicleModel: '2020 Toyota Camry',
-          owner: 'Ayam Idumba',
-          status: Math.random() > 0.5 ? 'No Violations' : 'Outstanding Parking Ticket',
-          statusType: Math.random() > 0.5 ? 'clean' : 'violation'
-        };
-        
-        setScanResults(mockResults);
+
+        // Look up vehicle information using unified API
+        try {
+          const vehicleResponse = await unifiedAPI.lookupVehicle(result.plateNumber);
+
+          if (vehicleResponse.data) {
+            const vehicle = vehicleResponse.data;
+            // Also check for violations
+            const violationResponse = await unifiedAPI.getViolations(result.plateNumber);
+            const hasViolations = violationResponse.data && violationResponse.data.length > 0;
+
+            const scanResults = {
+              plateNumber: result.plateNumber,
+              vehicleModel: vehicle.model || 'Unknown',
+              owner: vehicle.owner_name || 'Unknown',
+              status: hasViolations ? `${violationResponse.data!.length} Outstanding Violation(s)` : 'No Violations',
+              statusType: hasViolations ? 'violation' : 'clean'
+            };
+
+            setScanResults(scanResults);
+          } else {
+            // Vehicle not found in database
+            const scanResults = {
+              plateNumber: result.plateNumber,
+              vehicleModel: 'Unknown',
+              owner: 'Unknown',
+              status: 'Vehicle Not Registered',
+              statusType: 'violation'
+            };
+
+            setScanResults(scanResults);
+          }
+        } catch (apiError) {
+          console.error('Error looking up vehicle:', apiError);
+          // Fallback to basic detection info
+          const scanResults = {
+            plateNumber: result.plateNumber,
+            vehicleModel: 'Unknown',
+            owner: 'Unknown',
+            status: 'Lookup Failed',
+            statusType: 'violation'
+          };
+
+          setScanResults(scanResults);
+        }
+
         setIsScanning(false);
-        
+
         // Stop continuous scanning after successful detection
         if (scanInterval) {
           clearInterval(scanInterval);
@@ -113,22 +149,56 @@ const VehicleScanner = () => {
     }
   };
 
-  const handleManualLookup = () => {
+  const handleManualLookup = async () => {
     if (plateInput.trim()) {
       setIsScanning(true);
-      
-      // Simulate lookup process
-      setTimeout(() => {
-        const mockResults = {
+
+      try {
+        // Look up vehicle information using unified API
+        const vehicleResponse = await unifiedAPI.lookupVehicle(plateInput.trim());
+
+        if (vehicleResponse.data) {
+          const vehicle = vehicleResponse.data;
+          // Also check for violations
+          const violationResponse = await unifiedAPI.getViolations(plateInput.trim());
+          const hasViolations = violationResponse.data && violationResponse.data.length > 0;
+
+          const scanResults = {
+            plateNumber: plateInput.toUpperCase(),
+            vehicleModel: vehicle.model || 'Unknown',
+            owner: vehicle.owner_name || 'Unknown',
+            status: hasViolations ? `${violationResponse.data!.length} Outstanding Violation(s)` : 'No Violations',
+            statusType: hasViolations ? 'violation' : 'clean'
+          };
+
+          setScanResults(scanResults);
+        } else {
+          // Vehicle not found in database
+          const scanResults = {
+            plateNumber: plateInput.toUpperCase(),
+            vehicleModel: 'Unknown',
+            owner: 'Unknown',
+            status: 'Vehicle Not Registered',
+            statusType: 'violation'
+          };
+
+          setScanResults(scanResults);
+        }
+      } catch (apiError) {
+        console.error('Error looking up vehicle:', apiError);
+        // Fallback to error state
+        const scanResults = {
           plateNumber: plateInput.toUpperCase(),
-          vehicleModel: '2020 Toyota Camry',
-          owner: 'Ayam Idumba',
-          status: 'Outstanding Parking Ticket',
+          vehicleModel: 'Unknown',
+          owner: 'Unknown',
+          status: 'Lookup Failed',
           statusType: 'violation'
         };
-        setScanResults(mockResults);
-        setIsScanning(false);
-      }, 2000);
+
+        setScanResults(scanResults);
+      }
+
+      setIsScanning(false);
     }
   };
 
