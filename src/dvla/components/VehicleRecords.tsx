@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useData } from '../../contexts/DataContext';
+import { unifiedAPI, DVLAVehicle } from '../lib/api';
 import {
   Search,
   Plus,
@@ -9,18 +9,59 @@ import {
 } from 'lucide-react';
 
 interface VehicleRecord {
-  id: string;
+  id: number;
   licensePlate: string;
   make: string;
   model: string;
   owner: string;
   status: 'Active' | 'Expired' | 'Pending';
+  regNumber: string;
+  vehicleType: string;
+  yearOfManufacture: number;
 }
 
 const VehicleRecords: React.FC = () => {
   const { darkMode } = useTheme();
-  const { vehicles, updateVehicle, addNotification, isLoading } = useData();
   const [searchTerm, setSearchTerm] = useState('');
+  const [vehicleRecords, setVehicleRecords] = useState<VehicleRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchVehicleRecords();
+  }, []);
+
+  const fetchVehicleRecords = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await unifiedAPI.getDVLAVehicles();
+
+      if (response.data) {
+        // Convert DVLAVehicle to VehicleRecord format
+        const records: VehicleRecord[] = response.data.map((vehicle: DVLAVehicle) => ({
+          id: vehicle.id,
+          licensePlate: vehicle.license_plate,
+          make: vehicle.manufacturer,
+          model: vehicle.model,
+          owner: vehicle.owner_name,
+          status: vehicle.status === 'active' ? 'Active' as const :
+                  vehicle.status === 'expired' ? 'Expired' as const : 'Pending' as const,
+          regNumber: vehicle.reg_number,
+          vehicleType: vehicle.vehicle_type,
+          yearOfManufacture: vehicle.year_of_manufacture
+        }));
+        setVehicleRecords(records);
+      } else {
+        setError('Failed to load vehicle records');
+      }
+    } catch (err) {
+      console.error('Error fetching vehicle records:', err);
+      setError('Failed to load vehicle records');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -30,30 +71,40 @@ const VehicleRecords: React.FC = () => {
       </div>
     );
   }
-  
-  // Convert data format for compatibility
-  const vehicleRecords: VehicleRecord[] = vehicles.map(vehicle => ({
-    id: vehicle.id,
-    licensePlate: vehicle.plateNumber,
-    make: vehicle.make,
-    model: vehicle.model,
-    owner: vehicle.owner,
-    status: vehicle.status === 'active' ? 'Active' as const :
-            vehicle.status === 'expired' ? 'Expired' as const : 'Pending' as const
-  }));
 
-  const handleStatusChange = (vehicleId: string, newStatus: 'active' | 'expired' | 'suspended') => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (vehicle) {
-      updateVehicle({ ...vehicle, status: newStatus });
-      addNotification({
-        title: 'Vehicle Status Updated',
-        message: `Vehicle ${vehicle.plateNumber} status changed to ${newStatus}`,
-        type: 'info',
-        timestamp: new Date().toISOString(),
-        read: false,
-        system: 'DVLA App'
-      });
+  if (error) {
+    return (
+      <div className={`p-8 text-center transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-red-600 mb-4 transition-colors duration-200 ${
+          darkMode ? 'text-red-400' : 'text-red-600'
+        }`}>
+          {error}
+        </div>
+        <button
+          onClick={fetchVehicleRecords}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const handleStatusChange = async (vehicleId: number, newStatus: 'active' | 'expired' | 'suspended') => {
+    try {
+      const response = await unifiedAPI.updateDVLAVehicle(vehicleId, { status: newStatus });
+      if (response.data) {
+        // Refresh the vehicle records
+        await fetchVehicleRecords();
+        alert(`Vehicle status updated to ${newStatus}`);
+      } else {
+        alert('Failed to update vehicle status');
+      }
+    } catch (error) {
+      console.error('Error updating vehicle status:', error);
+      alert('Failed to update vehicle status');
     }
   };
 
@@ -81,11 +132,11 @@ const VehicleRecords: React.FC = () => {
     alert('Add New Vehicle Record functionality would open a form here');
   };
 
-  const handleEdit = (id: string) => {
+  const handleEdit = (id: number) => {
     alert(`Edit Vehicle Record ${id} functionality would open a form here`);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this vehicle record?')) {
       handleStatusChange(id, 'suspended');
     }
@@ -98,10 +149,10 @@ const VehicleRecords: React.FC = () => {
       <div className="mb-6 sm:mb-8">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 transition-colors duration-200 ${
           darkMode ? 'text-gray-100' : 'text-gray-900'
-        }`}> </h1>
+        }`}>Vehicle Records</h1>
         <p className={`text-sm sm:text-base transition-colors duration-200 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}></p>
+        }`}>Manage and view all registered vehicle records</p>
       </div>
 
       {/* Search and Add Button Section */}
