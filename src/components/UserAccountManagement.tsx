@@ -154,6 +154,35 @@ const UserAccountManagement: React.FC<UserAccountManagementProps> = ({ currentUs
 
   return (
     <div className="space-y-6">
+      {/* Supabase Configuration Notice */}
+      {showSupabaseNotice && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="text-yellow-600 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800 mb-1">
+                Database Not Connected
+              </h3>
+              <p className="text-sm text-yellow-700 mb-3">
+                The system is currently using local storage for user accounts. For full database functionality and better data persistence, consider connecting to Supabase.
+              </p>
+              <button
+                onClick={() => window.open('#open-mcp-popover', '_self')}
+                className="inline-flex items-center px-3 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors"
+              >
+                Connect to Supabase
+              </button>
+              <button
+                onClick={() => setShowSupabaseNotice(false)}
+                className="ml-2 inline-flex items-center px-3 py-1 text-xs font-medium text-yellow-600 hover:text-yellow-800 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
