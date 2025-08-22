@@ -52,6 +52,21 @@ const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
     }
   ];
 
+  const monthlyGrowthData = [
+    { month: 'Jan', vehicles: 850, violations: 78, resolvedViolations: 72 },
+    { month: 'Feb', vehicles: 920, violations: 85, resolvedViolations: 80 },
+    { month: 'Mar', vehicles: 1050, violations: 92, resolvedViolations: 88 },
+    { month: 'Apr', vehicles: 1180, violations: 105, resolvedViolations: 98 },
+    { month: 'May', vehicles: 1320, violations: 118, resolvedViolations: 112 },
+    { month: 'Jun', vehicles: 1450, violations: 132, resolvedViolations: 125 },
+    { month: 'Jul', vehicles: 1580, violations: 145, resolvedViolations: 138 },
+    { month: 'Aug', vehicles: 1720, violations: 158, resolvedViolations: 152 },
+    { month: 'Sep', vehicles: 1850, violations: 172, resolvedViolations: 165 },
+    { month: 'Oct', vehicles: 1980, violations: 185, resolvedViolations: 178 },
+    { month: 'Nov', vehicles: 2120, violations: 198, resolvedViolations: 191 },
+    { month: 'Dec', vehicles: 2250, violations: 212, resolvedViolations: 205 }
+  ];
+
   const recentActivities = [
     { description: 'Vehicle OT-2387-21 scanned.', time: '2 min ago' },
     { description: 'Violation flagged for BA-1387-18.', time: '15 min ago' },
