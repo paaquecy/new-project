@@ -624,6 +624,48 @@ class UnifiedAPIClient {
     localStorage.removeItem('user_role');
   }
 
+  // User Profile Management
+  async getCurrentUserProfile(): Promise<ApiResponse<User>> {
+    return this.request<User>('/auth/profile');
+  }
+
+  async updateUserProfile(profileData: {
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    badge_number?: string;
+    rank?: string;
+    department?: string;
+    address?: string;
+    profile_picture?: string;
+  }): Promise<ApiResponse<User>> {
+    return this.request<User>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async changePassword(passwordData: {
+    current_password: string;
+    new_password: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request<any>('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(passwordData),
+    });
+  }
+
+  async uploadProfilePicture(imageFile: File): Promise<ApiResponse<{ profile_picture_url: string }>> {
+    const formData = new FormData();
+    formData.append('profile_picture', imageFile);
+
+    return this.request<{ profile_picture_url: string }>('/auth/profile/picture', {
+      method: 'POST',
+      body: formData,
+      headers: {} // Remove content-type header for FormData
+    });
+  }
+
   // Police/General Vehicle Operations
   async getVehicleByPlate(plateNumber: string): Promise<ApiResponse<Vehicle>> {
     return this.request<Vehicle>(`/vehicles/${plateNumber}`);
