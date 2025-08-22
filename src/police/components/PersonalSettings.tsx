@@ -99,20 +99,76 @@ const PersonalSettings = () => {
     }));
   };
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     setIsSaving(true);
     setSaveStatus('');
 
-    // Simulate save process
-    setTimeout(() => {
+    try {
+      // Save profile data to database
+      const profileUpdateData = {
+        full_name: profileData.fullName,
+        email: profileData.email,
+        phone: profileData.phone,
+        badge_number: profileData.badgeNumber,
+        rank: profileData.rank,
+        department: profileData.department,
+        address: profileData.address
+      };
+
+      const profileResponse = await unifiedAPI.updateUserProfile(profileUpdateData);
+
+      if (profileResponse.error) {
+        throw new Error('Failed to update profile');
+      }
+
+      // If password fields are filled, update password
+      if (securitySettings.currentPassword && securitySettings.newPassword) {
+        if (securitySettings.newPassword !== securitySettings.confirmPassword) {
+          throw new Error('New password and confirm password do not match');
+        }
+
+        const passwordResponse = await unifiedAPI.changePassword({
+          current_password: securitySettings.currentPassword,
+          new_password: securitySettings.newPassword
+        });
+
+        if (passwordResponse.error) {
+          throw new Error('Failed to change password');
+        }
+
+        // Clear password fields after successful change
+        setSecuritySettings(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }));
+      }
+
+      // Save to local storage for app state persistence
+      localStorage.setItem('user_profile_data', JSON.stringify(profileData));
+      localStorage.setItem('user_notification_settings', JSON.stringify(notificationSettings));
+      localStorage.setItem('user_system_preferences', JSON.stringify(systemPreferences));
+
       setIsSaving(false);
       setSaveStatus('success');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => {
         setSaveStatus('');
       }, 3000);
-    }, 2000);
+
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setIsSaving(false);
+      setSaveStatus('error');
+      alert(`Failed to save settings: ${error.message}`);
+
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 5000);
+    }
   };
 
   const handleChangeProfilePhoto = () => {
