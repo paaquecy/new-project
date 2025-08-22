@@ -417,33 +417,42 @@ class UserAccountService {
   // Reject a user account
   async rejectUser(userId: string, reason: string, rejectedBy: string): Promise<{ success: boolean; message: string }> {
     try {
-      const { error } = await supabase
-        .from('user_accounts')
-        .update({
-          status: 'rejected',
-          rejected_at: new Date().toISOString(),
-          rejection_reason: reason,
-          approved_by: rejectedBy // Using approved_by field to track who made the decision
-        })
-        .eq('id', userId);
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (error) {
-        console.error('User rejection error:', error);
+      if (supabaseAvailable) {
+        const { error } = await supabase
+          .from('user_accounts')
+          .update({
+            status: 'rejected',
+            rejected_at: new Date().toISOString(),
+            rejection_reason: reason,
+            approved_by: rejectedBy // Using approved_by field to track who made the decision
+          })
+          .eq('id', userId);
+
+        if (error) {
+          throw error;
+        }
+
         return {
-          success: false,
-          message: 'Failed to reject user account'
+          success: true,
+          message: 'User account rejected'
+        };
+      } else {
+        // Use localStorage fallback
+        const result = rejectUserInStorage(userId);
+        return {
+          success: result,
+          message: result ? 'User account rejected' : 'Failed to reject user account'
         };
       }
-
-      return {
-        success: true,
-        message: 'User account rejected'
-      };
     } catch (error) {
       console.error('User rejection error:', error);
+      // Fallback to localStorage
+      const result = rejectUserInStorage(userId);
       return {
-        success: false,
-        message: 'An unexpected error occurred'
+        success: result,
+        message: result ? 'User account rejected' : 'Failed to reject user account'
       };
     }
   }
