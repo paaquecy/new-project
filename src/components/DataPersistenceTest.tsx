@@ -49,12 +49,20 @@ const DataPersistenceTest: React.FC = () => {
         <h4 className="font-medium text-gray-800 mb-2">Storage Information</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="font-medium text-gray-600">Storage Type:</span>
-            <span className="ml-2 text-gray-800">LocalStorage (Browser)</span>
+            <span className="font-medium text-gray-600">Primary Storage:</span>
+            <span className="ml-2 text-gray-800">Backend Database (PostgreSQL)</span>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Persistence:</span>
-            <span className="ml-2 text-green-600">✓ Enabled</span>
+            <span className="font-medium text-gray-600">Fallback Mode:</span>
+            <span className="ml-2 text-yellow-600">Mock Data (Development)</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">Local Storage:</span>
+            <span className="ml-2 text-blue-600">Auth Tokens & Preferences</span>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">API Backend:</span>
+            <span className="ml-2 text-gray-800">FastAPI (Python)</span>
           </div>
           <div>
             <span className="font-medium text-gray-600">Real-time Sync:</span>
@@ -62,7 +70,7 @@ const DataPersistenceTest: React.FC = () => {
           </div>
           <div>
             <span className="font-medium text-gray-600">Cross-App Data:</span>
-            <span className="ml-2 text-green-600">✓ Shared</span>
+            <span className="ml-2 text-green-600">✓ Unified API</span>
           </div>
         </div>
       </div>
