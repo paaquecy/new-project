@@ -228,7 +228,11 @@ const RegistrationRenewal: React.FC = () => {
               placeholder="Search by license plate, owner, or date..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className={`block w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                darkMode
+                  ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              }`}
             />
           </div>
 
