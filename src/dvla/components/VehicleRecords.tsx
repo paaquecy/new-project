@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { unifiedAPI, DVLAVehicle } from '../lib/api';
+import { unifiedAPI, DVLAVehicle } from '../../lib/unified-api';
 import {
   Search,
   Plus,
