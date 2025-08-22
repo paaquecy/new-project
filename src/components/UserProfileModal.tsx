@@ -224,13 +224,52 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
           {!showPasswordForm ? (
             <>
               <div className="flex flex-col items-center mb-6">
-                <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600 mb-2">
-                  {profile.name.split(' ').map(n => n[0]).join('')}
+                <div className="relative">
+                  {profile.profilePicture ? (
+                    <img
+                      src={profile.profilePicture}
+                      alt="Profile"
+                      className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600">
+                      {profile.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                  )}
+                  {editMode && (
+                    <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer hover:bg-blue-700 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureUpload}
+                        className="hidden"
+                      />
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                      </svg>
+                    </label>
+                  )}
                 </div>
-                <div className="text-lg font-semibold text-gray-900">{profile.name}</div>
+                <div className="text-lg font-semibold text-gray-900 text-center">{profile.name}</div>
                 <div className="text-sm text-gray-500">{profile.role}</div>
               </div>
+
               <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Full Name</label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      name="name"
+                      value={profile.name}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <div className="text-gray-800">{profile.name}</div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
                   {editMode ? (
@@ -245,6 +284,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
                     <div className="text-gray-800">{profile.email}</div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Contact Number</label>
                   {editMode ? (
@@ -259,35 +299,114 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
                     <div className="text-gray-800">{profile.contact}</div>
                   )}
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Department</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Badge Number</label>
                   {editMode ? (
                     <input
                       type="text"
-                      name="department"
-                      value={profile.department}
+                      name="badgeNumber"
+                      value={profile.badgeNumber}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <div className="text-gray-800">{profile.department}</div>
+                    <div className="text-gray-800">{profile.badgeNumber}</div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Rank</label>
+                    {editMode ? (
+                      <input
+                        type="text"
+                        name="rank"
+                        value={profile.rank}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <div className="text-gray-800">{profile.rank}</div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Department</label>
+                    {editMode ? (
+                      <input
+                        type="text"
+                        name="department"
+                        value={profile.department}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <div className="text-gray-800">{profile.department}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+                  {editMode ? (
+                    <textarea
+                      name="address"
+                      value={profile.address}
+                      onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                    />
+                  ) : (
+                    <div className="text-gray-800">{profile.address}</div>
                   )}
                 </div>
               </div>
+
+              {/* Status Messages */}
+              {saveStatus === 'success' && (
+                <div className="flex items-center p-2 bg-green-50 border border-green-200 rounded-md mt-4">
+                  <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-700 text-sm">Profile saved successfully!</span>
+                </div>
+              )}
+
+              {saveStatus === 'error' && (
+                <div className="flex items-center p-2 bg-red-50 border border-red-200 rounded-md mt-4">
+                  <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
+                  <span className="text-red-700 text-sm">Failed to save profile. Please try again.</span>
+                </div>
+              )}
+
               <div className="flex justify-between mt-6">
                 {editMode ? (
                   <>
                     <button
-                      onClick={() => setEditMode(false)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
+                      onClick={() => {
+                        setEditMode(false);
+                        loadUserProfile(); // Reset changes
+                      }}
+                      disabled={saving}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                      disabled={saving}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center"
                     >
-                      Save
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Save
+                        </>
+                      )}
                     </button>
                   </>
                 ) : (
