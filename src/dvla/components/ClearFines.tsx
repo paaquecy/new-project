@@ -363,10 +363,10 @@ const ClearFines: React.FC = () => {
       <div className="mb-6 sm:mb-8">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 transition-colors duration-200 ${
           darkMode ? 'text-gray-100' : 'text-gray-900'
-        }`}></h1>
+        }`}>Clear Fines</h1>
         <p className={`text-sm sm:text-base transition-colors duration-200 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}></p>
+        }`}>Manage and process fine payments and clearances</p>
       </div>
 
       {/* Search and Filter Section */}
