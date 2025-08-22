@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { unifiedAPI } from '../lib/unified-api';
+import { userAccountService } from '../services/userAccountService';
 import {
   Eye,
   EyeOff,
@@ -44,84 +45,121 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // First check static admin/supervisor credentials
-    if (username === '4231220075' && password === 'Wattaddo020') {
-      onLogin('main');
-      return;
-    } else if (username === '0203549815' && password === 'Killerman020') {
-      onLogin('supervisor');
-      return;
-    }
+    // Security audit log
+    console.log('Login attempt:', { username, timestamp: new Date().toISOString() });
 
-    // Explicit test credentials routing
-    if (username === '0987654321' && password === 'Bigfish020') {
-      onLogin('dvla');
-      return;
-    }
-    if (username === '1234567890' && password === 'Madman020') {
-      onLogin('police');
-      return;
-    }
-
-    // Try DVLA login first via unified backend
     try {
-      const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
-      if (dvlaLogin.data && !dvlaLogin.error) {
-        onLogin('dvla');
+      // First check if it's an admin/supervisor login (use email as username)
+      let authResult = null;
+
+      // Try admin login first (for backward compatibility with hardcoded admin credentials)
+      if (username === '4231220075' && password === 'Wattaddo020') {
+        // Hardcoded admin access - redirect to main app
+        onLogin('main');
         return;
       }
-    } catch (err) {
-      console.log('DVLA login failed, trying next method:', err);
-    }
 
-    // Try Supabase/unified authentication for police officers
-    try {
-      if (signIn && typeof signIn === 'function') {
-        const result = await signIn(`${username}@police.gov.gh`, password);
+      if (username === '0203549815' && password === 'Killerman020') {
+        // Hardcoded supervisor access
+        onLogin('supervisor');
+        return;
+      }
 
-        if (result && result.data && !result.error) {
-          console.log('Police officer authenticated via Supabase:', result.data.user);
-          onLogin('police');
+      // Try database authentication for different account types
+      // Try as admin/supervisor first (using email)
+      if (username.includes('@') || username === 'admin' || username === 'supervisor') {
+        authResult = await userAccountService.authenticateUser({
+          username: username.includes('@') ? username : `${username}@platerecognition.gov.gh`,
+          password,
+          accountType: 'admin'
+        });
+
+        if (!authResult) {
+          authResult = await userAccountService.authenticateUser({
+            username: username.includes('@') ? username : `${username}@platerecognition.gov.gh`,
+            password,
+            accountType: 'supervisor'
+          });
+        }
+      }
+
+      // If not admin/supervisor, try to determine account type and authenticate
+      if (!authResult) {
+        // Try DVLA authentication
+        if (username === '0987654321' && password === 'Bigfish020') {
+          // Backward compatibility for hardcoded DVLA
+          onLogin('dvla');
           return;
         }
-      }
-    } catch (error) {
-      console.log('Supabase auth failed, trying unified backend:', error);
-    }
 
-    // Fallback to unified backend police login
-    try {
-      const policeLogin = await unifiedAPI.login(username, password, 'police');
-      if (policeLogin.data && !policeLogin.error) {
-        onLogin('police');
-        return;
-      }
-    } catch (error) {
-      console.log('Unified backend login failed:', error);
-    }
+        authResult = await userAccountService.authenticateUser({
+          username,
+          password,
+          accountType: 'dvla'
+        });
 
-    // Development mode bypass - allow any credentials if backend is not available
-    if (import.meta.env.VITE_MODE === 'development' || import.meta.env.DEV) {
-      console.log('Development mode: Allowing login bypass');
-      // Allow login with any credentials if all backend methods failed
-      if (username && password) {
-        if (username.toLowerCase().includes('dvla')) {
-          onLogin('dvla');
-        } else if (username.toLowerCase().includes('supervisor')) {
-          onLogin('supervisor');
-        } else {
-          onLogin('police');
+        // If DVLA failed, try police
+        if (!authResult) {
+          if (username === '1234567890' && password === 'Madman020') {
+            // Backward compatibility for hardcoded police
+            onLogin('police');
+            return;
+          }
+
+          authResult = await userAccountService.authenticateUser({
+            username,
+            password,
+            accountType: 'police'
+          });
+        }
+      }
+
+      if (authResult && authResult.success) {
+        console.log('Database authentication successful:', {
+          accountType: authResult.user.account_type,
+          userId: authResult.user.id,
+          timestamp: new Date().toISOString()
+        });
+
+        // Store user info in session storage for the app
+        sessionStorage.setItem('currentUser', JSON.stringify({
+          id: authResult.user.id,
+          name: `${authResult.user.first_name} ${authResult.user.last_name}`,
+          email: authResult.user.email,
+          accountType: authResult.user.account_type,
+          username: authResult.user.account_type === 'police'
+            ? authResult.user.badge_number
+            : authResult.user.id_number || authResult.user.email
+        }));
+
+        // Route to appropriate application based on account type
+        switch (authResult.user.account_type) {
+          case 'admin':
+            onLogin('main');
+            break;
+          case 'supervisor':
+            onLogin('supervisor');
+            break;
+          case 'dvla':
+            onLogin('dvla');
+            break;
+          case 'police':
+            onLogin('police');
+            break;
+          default:
+            throw new Error('Unknown account type');
         }
         return;
       }
-    }
 
-    // Fallback to existing authentication for other users
-    // This maintains compatibility with existing DVLA and other credentials
-    // In a full implementation, all users would be migrated to Supabase
-    
-    // If no authentication succeeded
-    alert('Invalid credentials. Please check your username and password.\n\nFor Police Officers: Use your Badge Number as username and your assigned password\nFor DVLA Officers: Use your ID Number as username');
+      // If all authentication methods failed
+      console.warn('Unauthorized login attempt:', { username, timestamp: new Date().toISOString() });
+      alert('Access Denied: Invalid credentials or account not approved.\n\nPlease check your username and password, or contact your system administrator if your account is pending approval.');
+
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('An error occurred during login. Please try again or contact support if the problem persists.');
+    }
   };
 
   const handleRegisterClick = () => {

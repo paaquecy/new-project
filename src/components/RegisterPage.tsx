@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Shield, Car, Phone, Mail, Lock, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { addUser, isUsernameExists } from '../utils/userStorage';
 import { validatePassword, getSecurityConfig } from '../utils/securityConfig';
+import { userAccountService } from '../services/userAccountService';
 
 interface RegisterPageProps {
   onBackToLogin: () => void;
@@ -254,27 +255,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBackToLogin, onRegisterSu
       return;
     }
 
-    // Check if username already exists
-    const username = selectedAccountType === 'police' ? formData.badgeNumber : formData.idNumber;
-    if (isUsernameExists(username, selectedAccountType)) {
-      alert(`${selectedAccountType === 'police' ? 'Badge number' : 'ID number'} already exists. Please use a different one.`);
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Create new user in storage
-      const newUser = addUser({
+      // Prepare registration data for database
+      const registrationData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         telephone: formData.telephone,
         accountType: selectedAccountType,
-        password: formData.password, // In production, this should be hashed
+        password: formData.password,
         ...(selectedAccountType === 'police'
           ? {
               badgeNumber: formData.badgeNumber,
@@ -286,36 +277,43 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ onBackToLogin, onRegisterSu
               position: formData.position
             }
         )
-      });
+      };
 
-      console.log('Account creation successful:', newUser);
+      // Register user in database
+      const result = await userAccountService.registerUser(registrationData);
 
-      // Add to pending approvals for the UI
-      onNewRegistration({
-        id: newUser.id,
-        accountType: selectedAccountType,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        telephone: formData.telephone,
-        ...(selectedAccountType === 'police'
-          ? {
-              badgeNumber: formData.badgeNumber,
-              rank: formData.rank,
-              station: formData.station
-            }
-          : {
-              idNumber: formData.idNumber,
-              position: formData.position
-            }
-        )
-      });
+      if (result.success) {
+        console.log('Account creation successful:', result);
 
-      alert('Account created successfully! Your account is pending admin approval. You will be notified once approved and can then login.');
-      onRegisterSuccess();
+        // Add to pending approvals for the UI (backward compatibility)
+        onNewRegistration({
+          id: result.userId!,
+          accountType: selectedAccountType,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          telephone: formData.telephone,
+          ...(selectedAccountType === 'police'
+            ? {
+                badgeNumber: formData.badgeNumber,
+                rank: formData.rank,
+                station: formData.station
+              }
+            : {
+                idNumber: formData.idNumber,
+                position: formData.position
+              }
+          )
+        });
+
+        alert('Account created successfully! Your account is pending admin approval. You will be notified once approved and can then login.');
+        onRegisterSuccess();
+      } else {
+        alert(`Registration failed: ${result.message}`);
+      }
     } catch (error) {
       console.error('Account creation failed:', error);
-      alert('Account creation failed. Please try again.');
+      alert('Account creation failed. Please try again or contact support.');
     } finally {
       setIsSubmitting(false);
     }

@@ -17,6 +17,46 @@ const isValidSupabaseUrl = (url: string): boolean => {
 // Create a mock Supabase client for development when environment variables are not set
 const createMockSupabaseClient = () => {
   console.log('Using mock Supabase client - Supabase not configured');
+
+  // Mock query builder that supports chaining
+  const createMockQueryBuilder = () => {
+    const mockBuilder = {
+      select: (columns?: string) => mockBuilder,
+      insert: (data: any) => mockBuilder,
+      update: (data: any) => mockBuilder,
+      delete: () => mockBuilder,
+      eq: (column: string, value: any) => mockBuilder,
+      neq: (column: string, value: any) => mockBuilder,
+      gt: (column: string, value: any) => mockBuilder,
+      gte: (column: string, value: any) => mockBuilder,
+      lt: (column: string, value: any) => mockBuilder,
+      lte: (column: string, value: any) => mockBuilder,
+      like: (column: string, pattern: string) => mockBuilder,
+      ilike: (column: string, pattern: string) => mockBuilder,
+      in: (column: string, values: any[]) => mockBuilder,
+      order: (column: string, options?: any) => mockBuilder,
+      limit: (count: number) => mockBuilder,
+      single: () => Promise.resolve({
+        data: null,
+        error: { message: 'Supabase not configured - using mock client', code: 'MOCK_CLIENT' }
+      }),
+      maybeSingle: () => Promise.resolve({
+        data: null,
+        error: { message: 'Supabase not configured - using mock client', code: 'MOCK_CLIENT' }
+      })
+    };
+
+    // Make the builder thenable (Promise-like) for direct awaiting
+    mockBuilder.then = (onResolve: any, onReject?: any) => {
+      return Promise.resolve({
+        data: null,
+        error: { message: 'Supabase not configured - using mock client', code: 'MOCK_CLIENT' }
+      }).then(onResolve, onReject);
+    };
+
+    return mockBuilder;
+  };
+
   return {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
@@ -25,13 +65,9 @@ const createMockSupabaseClient = () => {
       signUp: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
       signOut: () => Promise.resolve({ error: null })
     },
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: null, error: null })
-        })
-      })
-    })
+    from: (table: string) => createMockQueryBuilder(),
+    // Add other Supabase methods as needed
+    rpc: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
   };
 };
 

@@ -30,6 +30,7 @@ import './dvla/index.css';
 import './police/index.css';
 import type { PendingApproval } from './components/PendingApprovalsTable';
 import { initializeDemoUsers, getPendingUsers } from './utils/userStorage';
+import { userAccountService } from './services/userAccountService';
 import { initializeDemoAuditLogs, logAuth, logAdmin, logSystem } from './utils/auditLog';
 import {
   initializeSession,
@@ -70,6 +71,9 @@ function AppContent() {
     initializeDemoUsers();
     initializeDemoAuditLogs();
     loadPendingApprovals();
+
+    // Initialize database with demo users if needed
+    userAccountService.initializeDemoData();
 
     // Only log system startup if not restoring from session
     if (!initialSession.isLoggedIn) {
@@ -359,7 +363,9 @@ function AppContent() {
       case 'notifications':
         return <NotificationsContent />;
       case 'user-accounts':
-        return <UserAccountManagement searchQuery={searchQuery} />;
+        // Get current user from session storage for admin operations
+        const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+        return <UserAccountManagement searchQuery={searchQuery} currentUserId={currentUser.id} />;
       case 'vehicle-registry':
         return <VehicleRegistry searchQuery={searchQuery} />;
       case 'analytics':
