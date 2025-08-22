@@ -25,7 +25,7 @@ const DataPersistenceTest: React.FC = () => {
       </h3>
       
       {/* Data Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-blue-50 rounded-lg p-4 text-center">
           <div className="text-2xl font-bold text-blue-600">{dataStats.users}</div>
           <div className="text-sm text-blue-800">Users</div>
@@ -41,10 +41,6 @@ const DataPersistenceTest: React.FC = () => {
         <div className="bg-purple-50 rounded-lg p-4 text-center">
           <div className="text-2xl font-bold text-purple-600">{dataStats.fines}</div>
           <div className="text-sm text-purple-800">Fines</div>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-4 text-center">
-          <div className="text-2xl font-bold text-gray-600">{dataStats.notifications}</div>
-          <div className="text-sm text-gray-800">Notifications</div>
         </div>
       </div>
 
