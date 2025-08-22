@@ -11,7 +11,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { unifiedAPI } from '../lib/unified-api';
+import { unifiedAPI } from '../../lib/unified-api';
 
 const PersonalSettings = () => {
   // Profile Settings State
