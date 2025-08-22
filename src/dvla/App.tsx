@@ -3,7 +3,6 @@ import { useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import StatusBar from './components/StatusBar';
 import VehicleDataEntry from './components/VehicleDataEntry';
 import OverviewDashboard from './components/OverviewDashboard';
 import VehicleRecords from './components/VehicleRecords';
@@ -141,8 +140,6 @@ function DvlaAppContent({ onLogout }: DvlaAppProps) {
           {renderContent()}
         </div>
         
-        {/* Status Bar */}
-        {activeMenuItem === 'overview' && <StatusBar />}
       </div>
 
       {/* Mobile Overlay */}
