@@ -47,8 +47,10 @@ const RegistrationRenewal: React.FC = () => {
       ]);
 
       if (vehiclesResponse.data && renewalsResponse.data) {
-        const vehicles = vehiclesResponse.data;
-        const renewals = renewalsResponse.data;
+        const vehicles = Array.isArray(vehiclesResponse.data) ? vehiclesResponse.data : [];
+        const renewals = Array.isArray(renewalsResponse.data) ? renewalsResponse.data : [];
+
+        console.log('Vehicles data:', vehicles, 'Renewals data:', renewals);
 
         // Create a map of vehicle renewals
         const vehicleRenewalMap = new Map();
