@@ -100,6 +100,10 @@ const RegistrationRenewal: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching renewal data:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
       setError('Failed to load renewal data');
     } finally {
       setIsLoading(false);
