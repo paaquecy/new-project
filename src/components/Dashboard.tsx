@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Car,
   AlertTriangle,
@@ -19,6 +19,7 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
+import { useData } from '../contexts/DataContext';
 
 interface DashboardProps {
   darkMode: boolean;
