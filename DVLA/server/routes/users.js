@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { database } = require('../config/database');
+const { database, TABLES, USER_ROLES } = require('../config/supabase');
 const { validateUser, validateId, validateQuery } = require('../middleware/validation');
 const { requireRole } = require('../middleware/auth');
 
@@ -14,41 +14,36 @@ router.get('/', requireRole(['admin']), validateQuery, async (req, res) => {
     const offset = (page - 1) * limit;
     const search = req.query.search || '';
 
-    let whereClause = 'WHERE 1=1';
-    let params = [];
+    // Build query with filters
+    let query = database.client
+      .from(TABLES.USERS)
+      .select('id, username, email, full_name, phone, role, created_at, updated_at', { count: 'exact' });
 
+    // Apply search filter
     if (search) {
-      whereClause += ' AND (username LIKE ? OR email LIKE ? OR full_name LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%,full_name.ilike.%${search}%`);
     }
 
-    // Get total count
-    const countResult = await database.get(
-      `SELECT COUNT(*) as total FROM users ${whereClause}`,
-      params
-    );
+    // Apply pagination and ordering
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // Get users
-    const users = await database.all(
-      `SELECT 
-        id, username, email, full_name, role, created_at, updated_at
-       FROM users 
-       ${whereClause}
-       ORDER BY created_at DESC 
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+    const { data: users, error, count } = await query;
+
+    if (error) {
+      throw error;
+    }
 
     res.json({
       success: true,
       data: {
-        users,
+        users: users || [],
         pagination: {
           page,
           limit,
-          total: countResult.total,
-          pages: Math.ceil(countResult.total / limit)
+          total: count || 0,
+          pages: Math.ceil((count || 0) / limit)
         }
       }
     });
@@ -56,18 +51,26 @@ router.get('/', requireRole(['admin']), validateQuery, async (req, res) => {
     console.error('Get users error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch users'
+      message: 'Failed to fetch users',
+      error: error.message
     });
   }
 });
 
-// Get user by ID (admin only)
+// Get user by ID
 router.get('/:id', requireRole(['admin']), validateId, async (req, res) => {
   try {
-    const user = await database.get(
-      'SELECT id, username, email, full_name, role, created_at, updated_at FROM users WHERE id = ?',
-      [req.params.id]
-    );
+    const userId = req.params.id;
+
+    const { data: user, error } = await database.client
+      .from(TABLES.USERS)
+      .select('id, username, email, full_name, phone, role, created_at, updated_at')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -76,30 +79,16 @@ router.get('/:id', requireRole(['admin']), validateId, async (req, res) => {
       });
     }
 
-    // Get user activity stats
-    const activityStats = await database.all(`
-      SELECT 
-        table_name,
-        action,
-        COUNT(*) as count
-      FROM audit_logs 
-      WHERE user_id = ?
-      GROUP BY table_name, action
-      ORDER BY count DESC
-    `, [req.params.id]);
-
     res.json({
       success: true,
-      data: {
-        user,
-        activity_stats: activityStats
-      }
+      data: { user }
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch user'
+      message: 'Failed to fetch user',
+      error: error.message
     });
   }
 });
@@ -107,69 +96,87 @@ router.get('/:id', requireRole(['admin']), validateId, async (req, res) => {
 // Create new user (admin only)
 router.post('/', requireRole(['admin']), validateUser, async (req, res) => {
   try {
-    const { username, email, password, full_name, role = 'user' } = req.body;
+    const { username, email, password, full_name, phone, role } = req.body;
 
-    // Check if user already exists
-    const existingUser = await database.get(
-      'SELECT id FROM users WHERE username = ? OR email = ?',
-      [username, email]
-    );
-
-    if (existingUser) {
-      return res.status(409).json({
+    // Validate role
+    if (!USER_ROLES.hasOwnProperty(role.toUpperCase())) {
+      return res.status(400).json({
         success: false,
-        message: 'Username or email already exists'
+        message: 'Invalid role specified'
       });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const result = await database.run(
-      `INSERT INTO users (username, email, password_hash, full_name, role) 
-       VALUES (?, ?, ?, ?, ?)`,
-      [username, email, hashedPassword, full_name, role]
-    );
+    const userData = {
+      username,
+      email,
+      password_hash: hashedPassword,
+      full_name,
+      phone,
+      role: role.toLowerCase()
+    };
+
+    const { data: user, error } = await database.client
+      .from(TABLES.USERS)
+      .insert(userData)
+      .select('id, username, email, full_name, phone, role, created_at')
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      ['users', result.id, 'create', JSON.stringify({ username, email, full_name, role }), req.user.id]
+    await database.logAudit(
+      TABLES.USERS,
+      user.id,
+      'INSERT',
+      null,
+      userData,
+      req.user?.id
     );
 
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      data: {
-        id: result.id,
-        username,
-        email,
-        full_name,
-        role
-      }
+      data: { user }
     });
   } catch (error) {
     console.error('Create user error:', error);
+    
+    if (error.code === '23505') { // PostgreSQL unique constraint violation
+      return res.status(409).json({
+        success: false,
+        message: 'User with this username or email already exists'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to create user'
+      message: 'Failed to create user',
+      error: error.message
     });
   }
 });
 
-// Update user (admin only)
+// Update user
 router.put('/:id', requireRole(['admin']), validateId, async (req, res) => {
   try {
     const userId = req.params.id;
-    const { username, email, full_name, role, password } = req.body;
+    const { username, email, full_name, phone, role, password } = req.body;
 
     // Get current user data for audit log
-    const currentUser = await database.get(
-      'SELECT * FROM users WHERE id = ?',
-      [userId]
-    );
+    const { data: currentUser, error: fetchError } = await database.client
+      .from(TABLES.USERS)
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!currentUser) {
       return res.status(404).json({
@@ -178,64 +185,72 @@ router.put('/:id', requireRole(['admin']), validateId, async (req, res) => {
       });
     }
 
-    // Check if username or email is already taken by another user
-    if (username || email) {
-      const existingUser = await database.get(
-        'SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?',
-        [username || currentUser.username, email || currentUser.email, userId]
-      );
-
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          message: 'Username or email already exists'
-        });
-      }
-    }
-
     const updateData = {
-      username: username || currentUser.username,
-      email: email || currentUser.email,
-      full_name: full_name || currentUser.full_name,
-      role: role || currentUser.role,
       updated_at: new Date().toISOString()
     };
 
-    // Hash new password if provided
+    // Only update provided fields
+    if (username) updateData.username = username;
+    if (email) updateData.email = email;
+    if (full_name) updateData.full_name = full_name;
+    if (phone) updateData.phone = phone;
+    if (role) {
+      // Validate role
+      if (!USER_ROLES.hasOwnProperty(role.toUpperCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role specified'
+        });
+      }
+      updateData.role = role.toLowerCase();
+    }
     if (password) {
       updateData.password_hash = await bcrypt.hash(password, 10);
     }
 
-    // Build dynamic update query
-    const updateFields = Object.keys(updateData).filter(key => key !== 'id');
-    const setClause = updateFields.map(field => `${field} = ?`).join(', ');
-    const values = updateFields.map(field => updateData[field]);
-    values.push(userId);
+    const { data: updatedUser, error: updateError } = await database.client
+      .from(TABLES.USERS)
+      .update(updateData)
+      .eq('id', userId)
+      .select('id, username, email, full_name, phone, role, created_at, updated_at')
+      .single();
 
-    await database.run(
-      `UPDATE users SET ${setClause} WHERE id = ?`,
-      values
-    );
+    if (updateError) {
+      throw updateError;
+    }
 
-    // Log the action (don't log password hash)
-    const logData = { ...updateData };
-    delete logData.password_hash;
+    // Log the action (exclude password from audit)
+    const auditData = { ...updateData };
+    delete auditData.password_hash;
     
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      ['users', userId, 'update', JSON.stringify(currentUser), JSON.stringify(logData), req.user.id]
+    await database.logAudit(
+      TABLES.USERS,
+      userId,
+      'UPDATE',
+      currentUser,
+      auditData,
+      req.user?.id
     );
 
     res.json({
       success: true,
-      message: 'User updated successfully'
+      message: 'User updated successfully',
+      data: { user: updatedUser }
     });
   } catch (error) {
     console.error('Update user error:', error);
+    
+    if (error.code === '23505') {
+      return res.status(409).json({
+        success: false,
+        message: 'Username or email already exists'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to update user'
+      message: 'Failed to update user',
+      error: error.message
     });
   }
 });
@@ -246,7 +261,7 @@ router.delete('/:id', requireRole(['admin']), validateId, async (req, res) => {
     const userId = req.params.id;
 
     // Prevent admin from deleting themselves
-    if (parseInt(userId) === req.user.id) {
+    if (req.user?.id === userId) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete your own account'
@@ -254,10 +269,15 @@ router.delete('/:id', requireRole(['admin']), validateId, async (req, res) => {
     }
 
     // Get user data for audit log
-    const user = await database.get(
-      'SELECT * FROM users WHERE id = ?',
-      [userId]
-    );
+    const { data: user, error: fetchError } = await database.client
+      .from(TABLES.USERS)
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -267,16 +287,23 @@ router.delete('/:id', requireRole(['admin']), validateId, async (req, res) => {
     }
 
     // Delete user
-    await database.run(
-      'DELETE FROM users WHERE id = ?',
-      [userId]
-    );
+    const { error: deleteError } = await database.client
+      .from(TABLES.USERS)
+      .delete()
+      .eq('id', userId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, user_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      ['users', userId, 'delete', JSON.stringify(user), req.user.id]
+    await database.logAudit(
+      TABLES.USERS,
+      userId,
+      'DELETE',
+      user,
+      null,
+      req.user?.id
     );
 
     res.json({
@@ -287,24 +314,43 @@ router.delete('/:id', requireRole(['admin']), validateId, async (req, res) => {
     console.error('Delete user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete user'
+      message: 'Failed to delete user',
+      error: error.message
     });
   }
 });
 
-// Get user activity logs (admin only)
-router.get('/:id/activity', requireRole(['admin']), validateId, validateQuery, async (req, res) => {
+// Change password (self or admin)
+router.put('/:id/password', validateId, async (req, res) => {
   try {
     const userId = req.params.id;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
+    const { currentPassword, newPassword } = req.body;
 
-    // Verify user exists
-    const user = await database.get(
-      'SELECT id, username, full_name FROM users WHERE id = ?',
-      [userId]
-    );
+    // Check if user is admin or updating their own password
+    if (req.user?.role !== 'admin' && req.user?.id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to change this password'
+      });
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      });
+    }
+
+    // Get current user
+    const { data: user, error: fetchError } = await database.client
+      .from(TABLES.USERS)
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!user) {
       return res.status(404).json({
@@ -313,45 +359,60 @@ router.get('/:id/activity', requireRole(['admin']), validateId, validateQuery, a
       });
     }
 
-    // Get total count
-    const countResult = await database.get(
-      'SELECT COUNT(*) as total FROM audit_logs WHERE user_id = ?',
-      [userId]
-    );
+    // Verify current password (unless admin changing someone else's password)
+    if (req.user?.role !== 'admin' || req.user?.id === userId) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is required'
+        });
+      }
 
-    // Get activity logs
-    const activities = await database.all(
-      `SELECT 
-        id, table_name, record_id, action, old_values, new_values, timestamp
-       FROM audit_logs 
-       WHERE user_id = ?
-       ORDER BY timestamp DESC 
-       LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isValidPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is incorrect'
+        });
+      }
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    const { error: updateError } = await database.client
+      .from(TABLES.USERS)
+      .update({ 
+        password_hash: hashedPassword,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Log the action
+    await database.logAudit(
+      TABLES.USERS,
+      userId,
+      'UPDATE',
+      null,
+      { action: 'password_changed' },
+      req.user?.id
     );
 
     res.json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          full_name: user.full_name
-        },
-        activities,
-        pagination: {
-          page,
-          limit,
-          total: countResult.total,
-          pages: Math.ceil(countResult.total / limit)
-        }
-      }
+      message: 'Password updated successfully'
     });
   } catch (error) {
-    console.error('Get user activity error:', error);
+    console.error('Change password error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch user activity'
+      message: 'Failed to change password',
+      error: error.message
     });
   }
 });
@@ -359,29 +420,51 @@ router.get('/:id/activity', requireRole(['admin']), validateId, validateQuery, a
 // Get user statistics (admin only)
 router.get('/stats/overview', requireRole(['admin']), async (req, res) => {
   try {
-    const stats = await Promise.all([
-      database.get("SELECT COUNT(*) as total FROM users"),
-      database.get("SELECT COUNT(*) as total FROM users WHERE role = 'admin'"),
-      database.get("SELECT COUNT(*) as total FROM users WHERE role = 'user'"),
-      database.get("SELECT COUNT(*) as total FROM users WHERE date(created_at) >= date('now', '-30 days')"),
-      database.get("SELECT COUNT(DISTINCT user_id) as total FROM audit_logs WHERE date(timestamp) >= date('now', '-7 days')")
-    ]);
+    // Get total users by role
+    const { data: users, error } = await database.client
+      .from(TABLES.USERS)
+      .select('role');
+
+    if (error) {
+      throw error;
+    }
+
+    // Count by role
+    const roleCounts = (users || []).reduce((acc, user) => {
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Get users created today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayUsers, error: todayError, count: todayCount } = await database.client
+      .from(TABLES.USERS)
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lt('created_at', `${today}T23:59:59.999Z`);
+
+    if (todayError) {
+      console.error('Error fetching today stats:', todayError);
+    }
 
     res.json({
       success: true,
       data: {
-        total_users: stats[0].total,
-        admin_users: stats[1].total,
-        regular_users: stats[2].total,
-        new_users_this_month: stats[3].total,
-        active_users_this_week: stats[4].total
+        total_users: users?.length || 0,
+        new_today: todayCount || 0,
+        by_role: {
+          admin: roleCounts.admin || 0,
+          user: roleCounts.user || 0,
+          officer: roleCounts.officer || 0
+        }
       }
     });
   } catch (error) {
     console.error('Get user stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch user statistics'
+      message: 'Failed to fetch user statistics',
+      error: error.message
     });
   }
 });

@@ -44,26 +44,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // First check static admin/supervisor credentials
-    if (username === '4231220075' && password === 'Wattaddo020') {
+    // Check static admin credentials
+    if (username === '4231220075' && password === 'Wattaddo020.') {
       onLogin('main');
-      return;
-    } else if (username === '0203549815' && password === 'Killerman020') {
-      onLogin('supervisor');
       return;
     }
 
-    // Explicit test credentials routing
-    if (username === '0987654321' && password === 'Bigfish020') {
+    // Check static DVLA credentials
+    if (username === '0987654321' && password === 'Bigfish020.') {
       onLogin('dvla');
       return;
     }
+
+    // Check static police credentials
     if (username === '1234567890' && password === 'Madman020') {
       onLogin('police');
       return;
     }
 
-    // Try DVLA login first via unified backend
+    // Check approved accounts from the user storage system
+    const { authenticateUser } = await import('../utils/userStorage');
+
+    // Try DVLA approved accounts
+    try {
+      const dvlaUser = authenticateUser({ username, password, accountType: 'dvla' });
+      if (dvlaUser) {
+        console.log('DVLA user authenticated from approved accounts:', dvlaUser);
+        onLogin('dvla');
+        return;
+      }
+    } catch (err) {
+      console.log('DVLA approved account check failed:', err);
+    }
+
+    // Try Police approved accounts
+    try {
+      const policeUser = authenticateUser({ username, password, accountType: 'police' });
+      if (policeUser) {
+        console.log('Police user authenticated from approved accounts:', policeUser);
+        onLogin('police');
+        return;
+      }
+    } catch (err) {
+      console.log('Police approved account check failed:', err);
+    }
+
+    // Try DVLA login via unified backend (fallback)
     try {
       const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
       if (dvlaLogin.data && !dvlaLogin.error) {
