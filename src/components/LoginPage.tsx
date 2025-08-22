@@ -104,7 +104,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
     }
 
     // If no specific credentials matched, show error
-    alert('Invalid Username or Password');
+    setErrorMessage('Invalid Username or Password');
   };
 
   const handleRegisterClick = () => {
