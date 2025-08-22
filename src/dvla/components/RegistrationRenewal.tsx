@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { 
-  Search, 
-  ChevronDown, 
-  RefreshCw, 
-  Eye 
+import { unifiedAPI, DVLAVehicle, DVLARenewal } from '../../lib/unified-api';
+import {
+  Search,
+  ChevronDown,
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 
 interface RenewalRecord {
-  id: string;
+  id: number;
   licensePlate: string;
   make: string;
   model: string;
   owner: string;
   renewalDate: string;
+  expiryDate?: string;
   status: 'Due Soon' | 'Overdue' | 'Renewed';
+  vehicleId: number;
+  amountPaid?: number;
+  paymentMethod?: string;
 }
 
 const RegistrationRenewal: React.FC = () => {
@@ -22,54 +27,115 @@ const RegistrationRenewal: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
-  const renewalRecords: RenewalRecord[] = [
-    {
-      id: '1',
-      licensePlate: 'AS-4235-24',
-      make: 'Toyota',
-      model: 'Camry',
-      owner: 'Ayam Idumba',
-      renewalDate: '2024-07-15',
-      status: 'Due Soon'
-    },
-    {
-      id: '2',
-      licensePlate: 'ER-2435-23',
-      make: 'Honda',
-      model: 'Civic',
-      owner: 'Yaw Asare',
-      renewalDate: '2024-05-20',
-      status: 'Overdue'
-    },
-    {
-      id: '3',
-      licensePlate: 'BA-8693-19',
-      make: 'Ford',
-      model: 'F-150',
-      owner: 'Alice Johnson',
-      renewalDate: '2023-11-01',
-      status: 'Renewed'
-    },
-    {
-      id: '4',
-      licensePlate: 'BA-8612-19',
-      make: 'BMW',
-      model: 'X5',
-      owner: 'Michael Brown',
-      renewalDate: '2024-08-10',
-      status: 'Due Soon'
-    },
-    {
-      id: '5',
-      licensePlate: 'ER-8612-19',
-      make: 'Mercedes',
-      model: 'C-Class',
-      owner: 'Sarah Davis',
-      renewalDate: '2024-06-05',
-      status: 'Overdue'
+  const [renewalRecords, setRenewalRecords] = useState<RenewalRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRenewalData();
+  }, []);
+
+  const fetchRenewalData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch vehicles and renewals
+      const [vehiclesResponse, renewalsResponse] = await Promise.all([
+        unifiedAPI.getDVLAVehicles(),
+        unifiedAPI.getDVLARenewals()
+      ]);
+
+      if (vehiclesResponse.data && renewalsResponse.data) {
+        const vehicles = vehiclesResponse.data;
+        const renewals = renewalsResponse.data;
+
+        // Create a map of vehicle renewals
+        const vehicleRenewalMap = new Map();
+        renewals.forEach((renewal: DVLARenewal) => {
+          vehicleRenewalMap.set(renewal.vehicle_id, renewal);
+        });
+
+        // Generate renewal records from vehicles
+        const records: RenewalRecord[] = vehicles.map((vehicle: DVLAVehicle) => {
+          const renewal = vehicleRenewalMap.get(vehicle.id);
+
+          // Calculate status based on renewal/expiry dates
+          const today = new Date();
+          let status: 'Due Soon' | 'Overdue' | 'Renewed' = 'Due Soon';
+
+          if (renewal) {
+            const expiryDate = new Date(renewal.expiry_date);
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (renewal.status === 'completed') {
+              status = 'Renewed';
+            } else if (daysUntilExpiry < 0) {
+              status = 'Overdue';
+            } else if (daysUntilExpiry <= 30) {
+              status = 'Due Soon';
+            }
+          }
+
+          return {
+            id: vehicle.id,
+            licensePlate: vehicle.license_plate,
+            make: vehicle.manufacturer,
+            model: vehicle.model,
+            owner: vehicle.owner_name,
+            renewalDate: renewal?.renewal_date || '',
+            expiryDate: renewal?.expiry_date || '',
+            status,
+            vehicleId: vehicle.id,
+            amountPaid: renewal?.amount_paid,
+            paymentMethod: renewal?.payment_method
+          };
+        });
+
+        setRenewalRecords(records);
+      } else {
+        setError('Failed to load renewal data');
+      }
+    } catch (err) {
+      console.error('Error fetching renewal data:', err);
+      setError('Failed to load renewal data');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center h-64 transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className={`ml-3 transition-colors duration-200 ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>Loading renewal records...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`p-8 text-center transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-red-600 mb-4 transition-colors duration-200 ${
+          darkMode ? 'text-red-400' : 'text-red-600'
+        }`}>
+          {error}
+        </div>
+        <button
+          onClick={fetchRenewalData}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const statusOptions = ['All Statuses', 'Due Soon', 'Overdue', 'Renewed'];
 
@@ -97,12 +163,34 @@ const RegistrationRenewal: React.FC = () => {
     }
   };
 
-  const handleRenew = (id: string) => {
-    console.log('Renew registration:', id);
+  const handleRenew = async (id: number) => {
+    try {
+      const response = await unifiedAPI.createDVLARenewal({
+        vehicle_id: id,
+        renewal_date: new Date().toISOString().split('T')[0],
+        expiry_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+        status: 'completed',
+        amount_paid: 150.00,
+        payment_method: 'Credit Card'
+      });
+
+      if (response.data) {
+        alert('Registration renewed successfully!');
+        await fetchRenewalData(); // Refresh data
+      } else {
+        alert('Failed to renew registration');
+      }
+    } catch (error) {
+      console.error('Error renewing registration:', error);
+      alert('Failed to renew registration');
+    }
   };
 
-  const handleViewDetails = (id: string) => {
-    console.log('View details:', id);
+  const handleViewDetails = (id: number) => {
+    const record = renewalRecords.find(r => r.id === id);
+    if (record) {
+      alert(`Vehicle Details:\n\nLicense Plate: ${record.licensePlate}\nMake: ${record.make}\nModel: ${record.model}\nOwner: ${record.owner}\nStatus: ${record.status}\nRenewal Date: ${record.renewalDate || 'Not renewed'}\nExpiry Date: ${record.expiryDate || 'Not set'}`);
+    }
   };
 
   const handleStatusFilter = (status: string) => {
@@ -117,14 +205,18 @@ const RegistrationRenewal: React.FC = () => {
       <div className="mb-8">
         <h1 className={`text-3xl font-bold mb-2 transition-colors duration-200 ${
           darkMode ? 'text-gray-100' : 'text-gray-900'
-        }`}></h1>
+        }`}>Registration Renewal</h1>
         <p className={`transition-colors duration-200 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}></p>
+        }`}>Manage vehicle registration renewals and track expiry dates</p>
       </div>
 
       {/* Search and Filter Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      <div className={`rounded-xl shadow-sm border p-6 mb-6 transition-colors duration-200 ${
+        darkMode
+          ? 'bg-gray-800 border-gray-700'
+          : 'bg-white border-gray-100'
+      }`}>
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
