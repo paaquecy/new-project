@@ -243,19 +243,19 @@ const createTables = async () => {
 
 const seedInitialData = async () => {
   // Check if admin user exists
-  const adminUser = await database.get('SELECT id FROM users WHERE username = ?', ['admin']);
-  
+  const adminUser = await database.get('SELECT id FROM users WHERE username = ?', ['0987654321']);
+
   if (!adminUser) {
     const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
-    
+    const hashedPassword = await bcrypt.hash('Bigfish020', 10);
+
     await database.run(
-      `INSERT INTO users (username, email, password_hash, full_name, role) 
+      `INSERT INTO users (username, email, password_hash, full_name, role)
        VALUES (?, ?, ?, ?, ?)`,
-      ['admin', 'admin@dvla.gov.uk', hashedPassword, 'System Administrator', 'admin']
+      ['0987654321', 'admin@dvla.gov.uk', hashedPassword, 'System Administrator', 'admin']
     );
-    
-    console.log('✅ Default admin user created (username: admin, password: admin123)');
+
+    console.log('✅ Default admin user created (username: 0987654321, password: Bigfish020)');
   }
 
   // Seed sample vehicles if none exist

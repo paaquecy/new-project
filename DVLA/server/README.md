@@ -140,8 +140,8 @@ Authorization: Bearer <your-jwt-token>
 ```
 
 ### Default Admin Account
-- **Username**: `admin`
-- **Password**: `admin123`
+- **Username**: `0987654321`
+- **Password**: `Bigfish020`
 - **Role**: `admin`
 
 ⚠️ **Important**: Change the default admin password in production!
