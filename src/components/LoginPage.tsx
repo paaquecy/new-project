@@ -25,11 +25,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
+    setErrorMessage(''); // Clear error when user types
     console.log('Username changed to:', e.target.value);
   };
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputValue>) => {
     setPassword(e.target.value);
+    setErrorMessage(''); // Clear error when user types
     console.log('Password changed');
   };
 
