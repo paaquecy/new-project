@@ -226,54 +226,98 @@ class UserAccountService {
   // Authenticate user login
   async authenticateUser(credentials: LoginCredentials): Promise<AuthResult | null> {
     try {
-      let query = supabase
-        .from('user_accounts')
-        .select('*')
-        .eq('account_type', credentials.accountType)
-        .eq('status', 'approved');
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      // Add username condition based on account type
-      if (credentials.accountType === 'police') {
-        query = query.eq('badge_number', credentials.username);
-      } else if (credentials.accountType === 'dvla') {
-        query = query.eq('id_number', credentials.username);
+      if (supabaseAvailable) {
+        return await this.authenticateUserWithSupabase(credentials);
       } else {
-        // For admin/supervisor, use email as username
-        query = query.eq('email', credentials.username);
+        return await this.authenticateUserWithLocalStorage(credentials);
       }
-
-      const { data, error } = await query.single();
-
-      if (error || !data) {
-        return null;
-      }
-
-      // Verify password
-      const passwordValid = await this.verifyPassword(credentials.password, data.password_hash);
-      
-      if (!passwordValid) {
-        return null;
-      }
-
-      // Update last login
-      await supabase
-        .from('user_accounts')
-        .update({ 
-          last_login: new Date().toISOString(),
-          login_attempts: 0 
-        })
-        .eq('id', data.id);
-
-      return {
-        user: data as UserAccount,
-        success: true,
-        message: 'Login successful'
-      };
-
     } catch (error) {
       console.error('Authentication error:', error);
+      // Fallback to localStorage
+      return await this.authenticateUserWithLocalStorage(credentials);
+    }
+  }
+
+  private async authenticateUserWithSupabase(credentials: LoginCredentials): Promise<AuthResult | null> {
+    let query = supabase
+      .from('user_accounts')
+      .select('*')
+      .eq('account_type', credentials.accountType)
+      .eq('status', 'approved');
+
+    // Add username condition based on account type
+    if (credentials.accountType === 'police') {
+      query = query.eq('badge_number', credentials.username);
+    } else if (credentials.accountType === 'dvla') {
+      query = query.eq('id_number', credentials.username);
+    } else {
+      // For admin/supervisor, use email as username
+      query = query.eq('email', credentials.username);
+    }
+
+    const { data, error } = await query.single();
+
+    if (error || !data) {
       return null;
     }
+
+    // Verify password
+    const passwordValid = await this.verifyPassword(credentials.password, data.password_hash);
+
+    if (!passwordValid) {
+      return null;
+    }
+
+    // Update last login
+    await supabase
+      .from('user_accounts')
+      .update({
+        last_login: new Date().toISOString(),
+        login_attempts: 0
+      })
+      .eq('id', data.id);
+
+    return {
+      user: data as UserAccount,
+      success: true,
+      message: 'Login successful'
+    };
+  }
+
+  private async authenticateUserWithLocalStorage(credentials: LoginCredentials): Promise<AuthResult | null> {
+    console.log('Using localStorage fallback for authentication');
+
+    const user = authenticateUserFromStorage(credentials);
+
+    if (!user) {
+      return null;
+    }
+
+    // Convert localStorage user to UserAccount format
+    const userAccount: UserAccount = {
+      id: user.id,
+      first_name: user.firstName,
+      last_name: user.lastName,
+      email: user.email,
+      telephone: user.telephone,
+      account_type: user.accountType as any,
+      status: user.status as any,
+      badge_number: user.badgeNumber,
+      rank: user.rank,
+      station: user.station,
+      id_number: user.idNumber,
+      position: user.position,
+      created_at: user.createdAt,
+      approved_at: user.approvedAt
+    };
+
+    return {
+      user: userAccount,
+      success: true,
+      message: 'Login successful (localStorage)'
+    };
   }
 
   // Get all pending user accounts for admin approval
