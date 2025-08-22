@@ -130,13 +130,20 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
 
   const handleResolve = (violation: Violation) => {
     console.log(`Resolve clicked for #${violation.id}`);
-    setViolations(prev => 
-      prev.map(v => 
-        v.id === violation.id 
-          ? { ...v, status: 'resolved' as const }
-          : v
-      )
-    );
+
+    // If we have database violations, update through the database
+    if (dbViolations && dbViolations.length > 0) {
+      const dbViolation = dbViolations.find(v => v.id === violation.id);
+      if (dbViolation) {
+        const updatedViolation: ViolationRecord = {
+          ...dbViolation,
+          status: 'approved' // In database, 'approved' means resolved
+        };
+        updateViolation(updatedViolation);
+      }
+    }
+    // For mock data, we would update local state, but since we're using useMemo
+    // and database data takes precedence, this will be handled by the database update
   };
 
   const handleViewDetails = (violation: Violation) => {
