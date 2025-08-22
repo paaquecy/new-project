@@ -121,11 +121,92 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Password change logic here
-    setShowPasswordForm(false);
-    setPasswords({ current: '', new: '', confirm: '' });
+
+    if (passwords.new !== passwords.confirm) {
+      alert('New password and confirm password do not match');
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      alert('New password must be at least 6 characters long');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await unifiedAPI.changePassword({
+        current_password: passwords.current,
+        new_password: passwords.new
+      });
+
+      if (response.data) {
+        setShowPasswordForm(false);
+        setPasswords({ current: '', new: '', confirm: '' });
+
+        addNotification({
+          id: Date.now().toString(),
+          title: 'Password Changed',
+          message: 'Your password has been changed successfully.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          read: false,
+          system: 'Main App'
+        });
+      } else {
+        throw new Error('Failed to change password');
+      }
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      alert('Failed to change password. Please check your current password and try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await unifiedAPI.uploadProfilePicture(file);
+
+      if (response.data) {
+        setProfile({ ...profile, profilePicture: response.data.profile_picture_url });
+
+        addNotification({
+          id: Date.now().toString(),
+          title: 'Profile Picture Updated',
+          message: 'Your profile picture has been updated successfully.',
+          type: 'success',
+          timestamp: new Date().toISOString(),
+          read: false,
+          system: 'Main App'
+        });
+      } else {
+        throw new Error('Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      alert('Failed to upload profile picture. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isOpen) return null;
