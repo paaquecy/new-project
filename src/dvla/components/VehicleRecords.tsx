@@ -37,6 +37,13 @@ const VehicleRecords: React.FC = () => {
       setError(null);
       const response = await unifiedAPI.getDVLAVehicles();
 
+      console.log('Vehicle API Response:', {
+        response,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A'
+      });
+
       if (response.data) {
         const vehiclesData = Array.isArray(response.data) ? response.data : [];
         console.log('Vehicle records data:', vehiclesData);
