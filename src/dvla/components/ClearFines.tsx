@@ -122,9 +122,28 @@ const ClearFines: React.FC = () => {
         // Auto-select first fine if available
         if (finesWithVehicles.length > 0) {
           loadFineData(finesWithVehicles[0]);
+        } else {
+          console.log('No fines data available');
+          // Set empty form data when no fines are available
+          setFormData({
+            fineId: 'No fines available',
+            offenseDescription: '',
+            dateTime: '',
+            location: '',
+            amount: '',
+            paymentStatus: 'Unpaid',
+            vehiclePlate: '',
+            vehicleMakeModel: '',
+            ownerName: '',
+            ownerContact: '',
+            paymentMethod: '',
+            markedAsCleared: false,
+            notes: ''
+          });
         }
       } else {
-        setError('Failed to load fines data');
+        console.log('API responses missing data:', { finesResponse, vehiclesResponse });
+        setError('Failed to load fines data - API responses missing data');
       }
     } catch (err) {
       console.error('Error fetching fines data:', err);
