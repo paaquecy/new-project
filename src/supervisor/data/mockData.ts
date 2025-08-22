@@ -66,6 +66,114 @@ let violationsState = [
     status: 'pending' as const,
     imageUrl: 'https://images.pexels.com/photos/1692693/pexels-photo-1692693.jpeg?auto=compress&cs=tinysrgb&w=300',
     location: 'Tema Motorway, Accra'
+  },
+  {
+    id: '6',
+    plateNumber: 'GT-4567-21',
+    offense: 'No Seat Belt',
+    description: 'Driver and passenger not wearing seat belts while driving',
+    capturedBy: 'Officer Jennifer Adams',
+    officerId: 'OFC006',
+    dateTime: '2025-01-20T09:15:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/1545743/pexels-photo-1545743.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Spintex Road, Accra'
+  },
+  {
+    id: '7',
+    plateNumber: 'ER-8901-22',
+    offense: 'Overloading',
+    description: 'Commercial vehicle carrying passengers beyond legal capacity',
+    capturedBy: 'Officer Kevin Thompson',
+    officerId: 'OFC007',
+    dateTime: '2025-01-20T12:45:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/1118448/pexels-photo-1118448.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Kaneshie Market, Accra'
+  },
+  {
+    id: '8',
+    plateNumber: 'AW-2345-20',
+    offense: 'Wrong Way Driving',
+    description: 'Vehicle driving against traffic flow on one-way street',
+    capturedBy: 'Officer Patricia Williams',
+    officerId: 'OFC008',
+    dateTime: '2025-01-20T07:20:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/3593922/pexels-photo-3593922.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Liberation Road, Accra'
+  },
+  {
+    id: '9',
+    plateNumber: 'TV-6789-23',
+    offense: 'Expired License',
+    description: 'Driver operating vehicle with expired drivers license',
+    capturedBy: 'Officer James Anderson',
+    officerId: 'OFC009',
+    dateTime: '2025-01-20T13:30:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/2244746/pexels-photo-2244746.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'East Legon, Accra'
+  },
+  {
+    id: '10',
+    plateNumber: 'BA-1111-19',
+    offense: 'Noise Pollution',
+    description: 'Vehicle using excessive horn and loud music in residential area',
+    capturedBy: 'Officer Maria Garcia',
+    officerId: 'OFC010',
+    dateTime: '2025-01-20T19:45:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/1108572/pexels-photo-1108572.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Dansoman, Accra'
+  },
+  {
+    id: '11',
+    plateNumber: 'CP-3333-22',
+    offense: 'Driving Under Influence',
+    description: 'Driver suspected of operating vehicle under influence of alcohol',
+    capturedBy: 'Officer Daniel Rodriguez',
+    officerId: 'OFC011',
+    dateTime: '2025-01-20T22:10:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/1545743/pexels-photo-1545743.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Osu, Accra'
+  },
+  {
+    id: '12',
+    plateNumber: 'NR-5555-21',
+    offense: 'Unregistered Vehicle',
+    description: 'Vehicle operating without valid registration documents',
+    capturedBy: 'Officer Angela Moore',
+    officerId: 'OFC012',
+    dateTime: '2025-01-20T15:25:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/3806748/pexels-photo-3806748.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Achimota, Accra'
+  },
+  {
+    id: '13',
+    plateNumber: 'UW-7777-20',
+    offense: 'Dangerous Overtaking',
+    description: 'Vehicle overtaking in prohibited zone with oncoming traffic',
+    capturedBy: 'Officer Steven Clark',
+    officerId: 'OFC013',
+    dateTime: '2025-01-20T10:40:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/1692693/pexels-photo-1692693.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Kumasi Highway, Accra'
+  },
+  {
+    id: '14',
+    plateNumber: 'VR-9999-23',
+    offense: 'Tinted Windows',
+    description: 'Vehicle windows tinted beyond legal limit obstructing visibility',
+    capturedBy: 'Officer Nancy Lewis',
+    officerId: 'OFC014',
+    dateTime: '2025-01-20T11:55:00Z',
+    status: 'pending' as const,
+    imageUrl: 'https://images.pexels.com/photos/2777898/pexels-photo-2777898.jpeg?auto=compress&cs=tinysrgb&w=300',
+    location: 'Airport Residential Area, Accra'
   }
 ];
 
