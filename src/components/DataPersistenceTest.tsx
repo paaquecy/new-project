@@ -69,30 +69,6 @@ const DataPersistenceTest: React.FC = () => {
 
 
 
-      {/* Recent Activity */}
-      {notifications.length > 0 && (
-        <div className="mt-6">
-          <h5 className="font-medium text-gray-800 mb-3">Recent Activity</h5>
-          <div className="space-y-2 max-h-32 overflow-y-auto">
-            {notifications.slice(0, 5).map((notification, index) => (
-              <div key={index} className="flex items-center text-sm p-2 bg-gray-50 rounded">
-                <div className={`w-2 h-2 rounded-full mr-3 ${
-                  notification.type === 'success' ? 'bg-green-500' :
-                  notification.type === 'warning' ? 'bg-yellow-500' :
-                  notification.type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                }`}></div>
-                <div className="flex-1">
-                  <div className="font-medium text-gray-800">{notification.title}</div>
-                  <div className="text-gray-600 text-xs">{notification.system}</div>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {new Date(notification.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
