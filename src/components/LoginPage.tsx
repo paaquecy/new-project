@@ -44,20 +44,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // First check static admin/supervisor credentials
-    if (username === '4231220075' && password === 'Wattaddo020') {
+    // Check static admin credentials
+    if (username === '4231220075' && password === 'Wattaddo020.') {
       onLogin('main');
-      return;
-    } else if (username === '0203549815' && password === 'Killerman020') {
-      onLogin('supervisor');
       return;
     }
 
-    // Explicit test credentials routing
-    if (username === '0987654321' && password === 'Bigfish020') {
+    // Check static DVLA credentials
+    if (username === '0987654321' && password === 'Bigfish020.') {
       onLogin('dvla');
       return;
     }
+
+    // Check static police credentials
     if (username === '1234567890' && password === 'Madman020') {
       onLogin('police');
       return;
