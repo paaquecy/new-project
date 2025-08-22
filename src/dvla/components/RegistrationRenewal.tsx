@@ -263,8 +263,10 @@ const RegistrationRenewal: React.FC = () => {
                   <button
                     key={option}
                     onClick={() => handleStatusFilter(option)}
-                    className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg ${
-                      statusFilter === option ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                    className={`w-full text-left px-4 py-2 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg ${
+                      statusFilter === option
+                        ? 'bg-blue-50 text-blue-600'
+                        : `${darkMode ? 'text-gray-100 hover:bg-gray-600' : 'text-gray-700 hover:bg-gray-50'}`
                     }`}
                   >
                     {option}
