@@ -99,7 +99,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
     }
 
     // If no specific credentials matched, show error
-    alert('Invalid credentials. Please check your username and password.\n\nValid credentials:\n• Main Admin: 4231220075 / Wattaddo020\n• Supervisor: 0203549815 / Killerman020\n• DVLA Officer: 0987654321 / Bigfish020\n• Police Officer: 1234567890 / Madman020');
+    alert('Invalid Username or Password');
   };
 
   const handleRegisterClick = () => {
