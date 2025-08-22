@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { unifiedAPI } from '../lib/unified-api';
+import { userAccountService } from '../services/userAccountService';
 import {
   Eye,
   EyeOff,
