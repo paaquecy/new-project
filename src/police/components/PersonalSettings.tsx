@@ -285,13 +285,16 @@ const PersonalSettings = () => {
             </div>
             <div className="text-center sm:text-left">
               <h4 className="text-base lg:text-lg font-semibold text-gray-800 mb-2">Profile Photo</h4>
-              <button
-                onClick={handleChangeProfilePhoto}
-                className="inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
+              <label className="inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer">
                 <Camera className="w-3 lg:w-4 h-3 lg:h-4 mr-2" />
                 Change Photo
-              </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleChangeProfilePhoto}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 
