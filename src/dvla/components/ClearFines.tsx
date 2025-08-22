@@ -91,8 +91,10 @@ const ClearFines: React.FC = () => {
       ]);
 
       if (finesResponse.data && vehiclesResponse.data) {
-        const fines = finesResponse.data;
-        const vehicles = vehiclesResponse.data;
+        const fines = Array.isArray(finesResponse.data) ? finesResponse.data : [];
+        const vehicles = Array.isArray(vehiclesResponse.data) ? vehiclesResponse.data : [];
+
+        console.log('Fines data:', fines, 'Vehicles data:', vehicles);
 
         // Create a map of vehicles
         const vehicleMap = new Map();
