@@ -1,58 +1,108 @@
 /**
- * @fileOverview Detects Ghana number plates in an image.
- *
- * - detectGhanaNumberPlate - A function that handles the number plate detection process.
- * - DetectGhanaNumberPlateInput - The input type for the detectGhanaNumberPlate function.
- * - DetectGhanaNumberPlateOutput - The return type for the detectGhanaNumberPlate function.
+ * @fileOverview Detects Ghana number plates in an image using Google Generative AI.
  */
 
-import { ai } from '../ai/genkit';
-import { z } from 'genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const DetectGhanaNumberPlateInputSchema = z.object({
-  photoDataUri: z
-    .string()
-    .describe(
-      "A photo containing a Ghana number plate, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-});
-export type DetectGhanaNumberPlateInput = z.infer<typeof DetectGhanaNumberPlateInputSchema>;
-
-const DetectGhanaNumberPlateOutputSchema = z.object({
-  numberPlateDetected: z.boolean().describe('Whether a Ghana number plate was detected in the image.'),
-  numberPlateText: z.string().optional().describe('The text of the detected number plate, if any.'),
-});
-export type DetectGhanaNumberPlateOutput = z.infer<typeof DetectGhanaNumberPlateOutputSchema>;
-
-export async function detectGhanaNumberPlate(input: DetectGhanaNumberPlateInput): Promise<DetectGhanaNumberPlateOutput> {
-  return detectGhanaNumberPlateFlow(input);
+export interface DetectGhanaNumberPlateInput {
+  photoDataUri: string;
 }
 
-const prompt = ai.definePrompt({
-  name: 'detectGhanaNumberPlatePrompt',
-  input: { schema: DetectGhanaNumberPlateInputSchema },
-  output: { schema: DetectGhanaNumberPlateOutputSchema },
-  prompt: `You are an expert in detecting Ghana number plates in images.
+export interface DetectGhanaNumberPlateOutput {
+  numberPlateDetected: boolean;
+  numberPlateText?: string;
+}
+
+const API_KEY = 'AIzaSyDbtGczxuC895tYIKmtixpVfa3jQouWnlY';
+
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+export async function detectGhanaNumberPlate(input: DetectGhanaNumberPlateInput): Promise<DetectGhanaNumberPlateOutput> {
+  try {
+    console.log('🤖 Starting Ghana plate detection with Google AI...');
+    
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `You are an expert in detecting Ghana number plates in images.
 
 You will receive an image and your task is to determine if there is a Ghana number plate in the image. If you find a Ghana number plate, extract the text from the plate.
 
-Analyze the following image:
+Please analyze the image and return ONLY a JSON object with the following structure:
+{
+  "numberPlateDetected": true/false,
+  "numberPlateText": "detected text or null"
+}
 
-{{media url=photoDataUri}}
+Make sure that the text of the number plate is as accurate as possible. If you are not sure about the text, set numberPlateDetected to false.
+Only return the JSON object, no other text.`;
 
-Return a JSON object. Set numberPlateDetected to true if you detect a plate, false otherwise. If you detect a plate, also set numberPlateText to the text extracted from the number plate.
+    // Convert data URI to the format expected by Gemini
+    const imageData = input.photoDataUri.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+    const mimeType = input.photoDataUri.match(/data:([^;]+)/)?.[1] || 'image/jpeg';
 
-Make sure that the text of the number plate is as accurate as possible, if you are not sure set the numberPlateDetected to false.`,
-});
+    const imagePart = {
+      inlineData: {
+        data: imageData,
+        mimeType: mimeType,
+      },
+    };
 
-const detectGhanaNumberPlateFlow = ai.defineFlow(
-  {
-    name: 'detectGhanaNumberPlateFlow',
-    inputSchema: DetectGhanaNumberPlateInputSchema,
-    outputSchema: DetectGhanaNumberPlateOutputSchema,
-  },
-  async input => {
-    const { output } = await prompt(input);
-    return output!;
+    console.log('🔍 Sending image to Google AI for analysis...');
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log('📝 Raw AI response:', text);
+
+    // Parse the JSON response
+    try {
+      // Clean the response text to extract JSON
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+      
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log('✅ Parsed AI response:', parsed);
+      
+      return {
+        numberPlateDetected: parsed.numberPlateDetected || false,
+        numberPlateText: parsed.numberPlateText || undefined
+      };
+    } catch (parseError) {
+      console.error('❌ Failed to parse AI response as JSON:', parseError);
+      console.log('Raw response was:', text);
+      
+      // Fallback: try to extract plate text manually if detection keywords are found
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('plate') || lowerText.includes('number') || lowerText.includes('license')) {
+        // Simple regex to find potential plate patterns (Ghana format examples)
+        const platePatterns = [
+          /[A-Z]{2,3}[-\s]?\d{3,4}[-\s]?\d{1,2}/g, // GR-1234-20 format
+          /[A-Z]{1,3}[-\s]?\d{1,4}[-\s]?\d{1,4}/g, // General patterns
+        ];
+        
+        for (const pattern of platePatterns) {
+          const matches = text.match(pattern);
+          if (matches && matches.length > 0) {
+            return {
+              numberPlateDetected: true,
+              numberPlateText: matches[0].replace(/[-\s]/g, ' ').trim()
+            };
+          }
+        }
+      }
+      
+      return {
+        numberPlateDetected: false,
+        numberPlateText: undefined
+      };
+    }
+  } catch (error) {
+    console.error('❌ Ghana plate detection failed:', error);
+    return {
+      numberPlateDetected: false,
+      numberPlateText: undefined
+    };
   }
-);
+}
