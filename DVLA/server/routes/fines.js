@@ -1,7 +1,7 @@
 const express = require('express');
-const { database } = require('../config/database');
+const { database, TABLES, PAYMENT_STATUS } = require('../config/supabase');
 const { validateFine, validateId, validateQuery } = require('../middleware/validation');
-const { upload, handleUploadError } = require('../middleware/upload');
+const { supabaseUploadMiddleware, saveFileMetadata } = require('../middleware/supabaseUpload');
 
 const router = express.Router();
 
@@ -14,52 +14,47 @@ router.get('/', validateQuery, async (req, res) => {
     const search = req.query.search || '';
     const status = req.query.status || '';
 
-    let whereClause = 'WHERE 1=1';
-    let params = [];
+    // Build query with joins
+    let query = database.client
+      .from(TABLES.FINES)
+      .select(`
+        id, fine_id, offense_description, offense_date, offense_location,
+        amount, payment_status, payment_method, marked_as_cleared, created_at,
+        dvla_vehicles:vehicle_id (
+          license_plate, manufacturer, model, owner_name
+        )
+      `, { count: 'exact' });
 
+    // Apply search filter
     if (search) {
-      whereClause += ` AND (f.fine_id LIKE ? OR v.license_plate LIKE ? OR v.owner_name LIKE ?)`;
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      query = query.or(`fine_id.ilike.%${search}%,dvla_vehicles.license_plate.ilike.%${search}%,dvla_vehicles.owner_name.ilike.%${search}%`);
     }
 
+    // Apply status filter
     if (status && status !== 'All') {
-      whereClause += ' AND f.payment_status = ?';
-      params.push(status.toLowerCase());
+      query = query.eq('payment_status', status.toLowerCase());
     }
 
-    // Get total count
-    const countResult = await database.get(
-      `SELECT COUNT(*) as total 
-       FROM fines f 
-       JOIN vehicles v ON f.vehicle_id = v.id 
-       ${whereClause}`,
-      params
-    );
+    // Apply pagination and ordering
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    // Get fines with vehicle information
-    const fines = await database.all(
-      `SELECT 
-        f.id, f.fine_id, f.offense_description, f.offense_date, f.offense_location,
-        f.amount, f.payment_status, f.payment_method, f.marked_as_cleared, f.created_at,
-        v.license_plate, v.manufacturer, v.model, v.owner_name
-       FROM fines f
-       JOIN vehicles v ON f.vehicle_id = v.id
-       ${whereClause}
-       ORDER BY f.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
-    );
+    const { data: fines, error, count } = await query;
+
+    if (error) {
+      throw error;
+    }
 
     res.json({
       success: true,
       data: {
-        fines,
+        fines: fines || [],
         pagination: {
           page,
           limit,
-          total: countResult.total,
-          pages: Math.ceil(countResult.total / limit)
+          total: count || 0,
+          pages: Math.ceil((count || 0) / limit)
         }
       }
     });
@@ -67,7 +62,8 @@ router.get('/', validateQuery, async (req, res) => {
     console.error('Get fines error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch fines'
+      message: 'Failed to fetch fines',
+      error: error.message
     });
   }
 });
@@ -75,16 +71,23 @@ router.get('/', validateQuery, async (req, res) => {
 // Get fine by ID
 router.get('/:id', validateId, async (req, res) => {
   try {
-    const fine = await database.get(
-      `SELECT 
-        f.*, 
-        v.license_plate, v.manufacturer, v.model, v.owner_name,
-        v.owner_phone, v.owner_email, v.owner_address
-       FROM fines f
-       JOIN vehicles v ON f.vehicle_id = v.id
-       WHERE f.id = ?`,
-      [req.params.id]
-    );
+    const fineId = req.params.id;
+
+    const { data: fine, error } = await database.client
+      .from(TABLES.FINES)
+      .select(`
+        *,
+        dvla_vehicles:vehicle_id (
+          id, reg_number, license_plate, manufacturer, model, 
+          owner_name, owner_address, owner_phone, owner_email
+        )
+      `)
+      .eq('id', fineId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     if (!fine) {
       return res.status(404).json({
@@ -93,37 +96,30 @@ router.get('/:id', validateId, async (req, res) => {
       });
     }
 
-    // Get audit logs for this fine
-    const auditLogs = await database.all(
-      `SELECT 
-        al.action, al.timestamp, al.old_values, al.new_values,
-        u.full_name as user_name
-       FROM audit_logs al
-       LEFT JOIN users u ON al.user_id = u.id
-       WHERE al.table_name = 'fines' AND al.record_id = ?
-       ORDER BY al.timestamp DESC`,
-      [req.params.id]
-    );
-
     // Get associated documents
-    const documents = await database.all(
-      'SELECT * FROM documents WHERE entity_type = ? AND entity_id = ?',
-      ['fine', req.params.id]
-    );
+    const { data: documents, error: documentsError } = await database.client
+      .from(TABLES.DOCUMENTS)
+      .select('*')
+      .eq('entity_type', 'fine')
+      .eq('entity_id', fineId);
+
+    if (documentsError) {
+      console.error('Error fetching documents:', documentsError);
+    }
 
     res.json({
       success: true,
       data: {
         fine,
-        audit_logs: auditLogs,
-        documents
+        documents: documents || []
       }
     });
   } catch (error) {
     console.error('Get fine error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch fine'
+      message: 'Failed to fetch fine',
+      error: error.message
     });
   }
 });
@@ -133,41 +129,56 @@ router.post('/', validateFine, async (req, res) => {
   try {
     const fineData = {
       ...req.body,
-      created_by: req.user.id
+      created_by: req.user?.id || null,
+      payment_status: PAYMENT_STATUS.UNPAID
     };
 
-    const result = await database.run(
-      `INSERT INTO fines (
-        fine_id, vehicle_id, offense_description, offense_date, offense_location,
-        amount, payment_status, payment_method, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        fineData.fine_id, fineData.vehicle_id, fineData.offense_description,
-        fineData.offense_date, fineData.offense_location, fineData.amount,
-        fineData.payment_status || 'unpaid', fineData.payment_method,
-        fineData.notes, fineData.created_by
-      ]
-    );
+    // Verify vehicle exists
+    const { data: vehicle, error: vehicleError } = await database.client
+      .from(TABLES.VEHICLES)
+      .select('id')
+      .eq('id', fineData.vehicle_id)
+      .single();
+
+    if (vehicleError || !vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found'
+      });
+    }
+
+    const { data: fine, error } = await database.client
+      .from(TABLES.FINES)
+      .insert(fineData)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?)`,
-      ['fines', result.id, 'create', JSON.stringify(fineData), req.user.id]
+    await database.logAudit(
+      TABLES.FINES,
+      fine.id,
+      'INSERT',
+      null,
+      fineData,
+      req.user?.id
     );
 
     res.status(201).json({
       success: true,
       message: 'Fine created successfully',
       data: {
-        id: result.id,
-        fine_id: fineData.fine_id
+        id: fine.id,
+        fine_id: fine.fine_id
       }
     });
   } catch (error) {
     console.error('Create fine error:', error);
     
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.code === '23505') { // PostgreSQL unique constraint violation
       return res.status(409).json({
         success: false,
         message: 'Fine with this ID already exists'
@@ -176,7 +187,8 @@ router.post('/', validateFine, async (req, res) => {
     
     res.status(500).json({
       success: false,
-      message: 'Failed to create fine'
+      message: 'Failed to create fine',
+      error: error.message
     });
   }
 });
@@ -187,10 +199,15 @@ router.put('/:id', validateId, async (req, res) => {
     const fineId = req.params.id;
 
     // Get current fine data for audit log
-    const currentFine = await database.get(
-      'SELECT * FROM fines WHERE id = ?',
-      [fineId]
-    );
+    const { data: currentFine, error: fetchError } = await database.client
+      .from(TABLES.FINES)
+      .select('*')
+      .eq('id', fineId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
 
     if (!currentFine) {
       return res.status(404).json({
@@ -204,211 +221,304 @@ router.put('/:id', validateId, async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    // Build dynamic update query
-    const updateFields = Object.keys(updateData).filter(key => key !== 'id');
-    const setClause = updateFields.map(field => `${field} = ?`).join(', ');
-    const values = updateFields.map(field => updateData[field]);
-    values.push(fineId);
+    const { data: updatedFine, error: updateError } = await database.client
+      .from(TABLES.FINES)
+      .update(updateData)
+      .eq('id', fineId)
+      .select()
+      .single();
 
-    await database.run(
-      `UPDATE fines SET ${setClause} WHERE id = ?`,
-      values
-    );
+    if (updateError) {
+      throw updateError;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      ['fines', fineId, 'update', JSON.stringify(currentFine), JSON.stringify(updateData), req.user.id]
+    await database.logAudit(
+      TABLES.FINES,
+      fineId,
+      'UPDATE',
+      currentFine,
+      updateData,
+      req.user?.id
     );
 
     res.json({
       success: true,
-      message: 'Fine updated successfully'
+      message: 'Fine updated successfully',
+      data: updatedFine
     });
   } catch (error) {
     console.error('Update fine error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update fine'
+      message: 'Failed to update fine',
+      error: error.message
     });
   }
 });
 
-// Clear fine (mark as cleared)
-router.post('/:id/clear', validateId, async (req, res) => {
+// Delete fine
+router.delete('/:id', validateId, async (req, res) => {
   try {
     const fineId = req.params.id;
-    const { notes } = req.body;
 
-    // Get current fine data
-    const currentFine = await database.get(
-      'SELECT * FROM fines WHERE id = ?',
-      [fineId]
-    );
+    // Get fine data for audit log
+    const { data: fine, error: fetchError } = await database.client
+      .from(TABLES.FINES)
+      .select('*')
+      .eq('id', fineId)
+      .single();
 
-    if (!currentFine) {
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!fine) {
       return res.status(404).json({
         success: false,
         message: 'Fine not found'
       });
     }
 
-    // Update fine status
-    await database.run(
-      `UPDATE fines SET 
-        marked_as_cleared = TRUE, 
-        payment_status = 'paid',
-        notes = ?,
-        verified_by = ?,
-        updated_at = CURRENT_TIMESTAMP 
-       WHERE id = ?`,
-      [notes, req.user.id, fineId]
-    );
+    // Delete fine
+    const { error: deleteError } = await database.client
+      .from(TABLES.FINES)
+      .delete()
+      .eq('id', fineId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
 
     // Log the action
-    await database.run(
-      `INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, user_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      ['fines', fineId, 'clear', JSON.stringify(currentFine), JSON.stringify({ marked_as_cleared: true, notes }), req.user.id]
+    await database.logAudit(
+      TABLES.FINES,
+      fineId,
+      'DELETE',
+      fine,
+      null,
+      req.user?.id
     );
 
     res.json({
       success: true,
-      message: 'Fine cleared successfully'
+      message: 'Fine deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete fine error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete fine',
+      error: error.message
+    });
+  }
+});
+
+// Mark fine as paid
+router.put('/:id/pay', validateId, async (req, res) => {
+  try {
+    const fineId = req.params.id;
+    const { payment_method, transaction_id, notes } = req.body;
+
+    // Get current fine
+    const { data: fine, error: fetchError } = await database.client
+      .from(TABLES.FINES)
+      .select('*')
+      .eq('id', fineId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!fine) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fine not found'
+      });
+    }
+
+    if (fine.payment_status === PAYMENT_STATUS.PAID) {
+      return res.status(400).json({
+        success: false,
+        message: 'Fine is already marked as paid'
+      });
+    }
+
+    const updateData = {
+      payment_status: PAYMENT_STATUS.PAID,
+      payment_method: payment_method || 'cash',
+      notes: notes || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: updatedFine, error: updateError } = await database.client
+      .from(TABLES.FINES)
+      .update(updateData)
+      .eq('id', fineId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Log the action
+    await database.logAudit(
+      TABLES.FINES,
+      fineId,
+      'UPDATE',
+      fine,
+      { action: 'marked_as_paid', ...updateData },
+      req.user?.id
+    );
+
+    res.json({
+      success: true,
+      message: 'Fine marked as paid successfully',
+      data: updatedFine
+    });
+  } catch (error) {
+    console.error('Pay fine error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark fine as paid',
+      error: error.message
+    });
+  }
+});
+
+// Mark fine as cleared
+router.put('/:id/clear', validateId, async (req, res) => {
+  try {
+    const fineId = req.params.id;
+
+    // Get current fine
+    const { data: fine, error: fetchError } = await database.client
+      .from(TABLES.FINES)
+      .select('*')
+      .eq('id', fineId)
+      .single();
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!fine) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fine not found'
+      });
+    }
+
+    const updateData = {
+      marked_as_cleared: true,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: updatedFine, error: updateError } = await database.client
+      .from(TABLES.FINES)
+      .update(updateData)
+      .eq('id', fineId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Log the action
+    await database.logAudit(
+      TABLES.FINES,
+      fineId,
+      'UPDATE',
+      fine,
+      { action: 'marked_as_cleared' },
+      req.user?.id
+    );
+
+    res.json({
+      success: true,
+      message: 'Fine marked as cleared successfully',
+      data: updatedFine
     });
   } catch (error) {
     console.error('Clear fine error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to clear fine'
+      message: 'Failed to mark fine as cleared',
+      error: error.message
     });
   }
 });
 
 // Upload payment proof
-router.post('/:id/payment-proof', validateId, upload.array('payment_proof', 5), handleUploadError, async (req, res) => {
+router.post('/:id/payment-proof', validateId, supabaseUploadMiddleware('payment-proof', 'proof'), async (req, res) => {
   try {
     const fineId = req.params.id;
 
     // Verify fine exists
-    const fine = await database.get(
-      'SELECT id FROM fines WHERE id = ?',
-      [fineId]
-    );
+    const { data: fine, error: fineError } = await database.client
+      .from(TABLES.FINES)
+      .select('id')
+      .eq('id', fineId)
+      .single();
 
-    if (!fine) {
+    if (fineError || !fine) {
       return res.status(404).json({
         success: false,
         message: 'Fine not found'
       });
     }
 
-    if (!req.files || req.files.length === 0) {
+    if (!req.uploadResult) {
       return res.status(400).json({
         success: false,
-        message: 'No files uploaded'
+        message: 'No payment proof uploaded'
       });
     }
 
-    const uploadedDocuments = [];
-
-    for (const file of req.files) {
-      const result = await database.run(
-        `INSERT INTO documents (entity_type, entity_id, document_type, file_name, file_path, file_size, mime_type, uploaded_by) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['fine', fineId, 'payment_proof', file.originalname, file.path, file.size, file.mimetype, req.user.id]
-      );
-
-      uploadedDocuments.push({
-        id: result.id,
-        file_name: file.originalname,
-        file_size: file.size,
-        mime_type: file.mimetype
-      });
-    }
-
-    // Update fine with payment proof path
-    await database.run(
-      'UPDATE fines SET payment_proof_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [req.files[0].path, fineId]
+    // Save file metadata to database
+    const documentData = await saveFileMetadata(
+      req.uploadResult,
+      'fine',
+      fineId,
+      'payment_proof',
+      req.user?.id
     );
+
+    // Update fine with payment proof URL
+    const { error: updateError } = await database.client
+      .from(TABLES.FINES)
+      .update({ 
+        payment_proof_url: req.uploadResult.publicUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', fineId);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     res.status(201).json({
       success: true,
       message: 'Payment proof uploaded successfully',
-      data: { documents: uploadedDocuments }
+      data: {
+        document: {
+          id: documentData.id,
+          file_name: req.uploadResult.originalName,
+          file_url: req.uploadResult.publicUrl,
+          file_size: req.uploadResult.fileSize,
+          mime_type: req.uploadResult.mimeType
+        }
+      }
     });
   } catch (error) {
     console.error('Upload payment proof error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to upload payment proof'
-    });
-  }
-});
-
-// Upload evidence
-router.post('/:id/evidence', validateId, upload.array('evidence', 10), handleUploadError, async (req, res) => {
-  try {
-    const fineId = req.params.id;
-
-    // Verify fine exists
-    const fine = await database.get(
-      'SELECT id FROM fines WHERE id = ?',
-      [fineId]
-    );
-
-    if (!fine) {
-      return res.status(404).json({
-        success: false,
-        message: 'Fine not found'
-      });
-    }
-
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No files uploaded'
-      });
-    }
-
-    const uploadedDocuments = [];
-    const evidencePaths = [];
-
-    for (const file of req.files) {
-      const result = await database.run(
-        `INSERT INTO documents (entity_type, entity_id, document_type, file_name, file_path, file_size, mime_type, uploaded_by) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ['fine', fineId, 'evidence', file.originalname, file.path, file.size, file.mimetype, req.user.id]
-      );
-
-      uploadedDocuments.push({
-        id: result.id,
-        file_name: file.originalname,
-        file_size: file.size,
-        mime_type: file.mimetype
-      });
-
-      evidencePaths.push(file.path);
-    }
-
-    // Update fine with evidence paths
-    await database.run(
-      'UPDATE fines SET evidence_paths = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [JSON.stringify(evidencePaths), fineId]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Evidence uploaded successfully',
-      data: { documents: uploadedDocuments }
-    });
-  } catch (error) {
-    console.error('Upload evidence error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload evidence'
+      message: 'Failed to upload payment proof',
+      error: error.message
     });
   }
 });
@@ -416,31 +526,102 @@ router.post('/:id/evidence', validateId, upload.array('evidence', 10), handleUpl
 // Get fine statistics
 router.get('/stats/overview', async (req, res) => {
   try {
-    const stats = await Promise.all([
-      database.get("SELECT COUNT(*) as total FROM fines"),
-      database.get("SELECT COUNT(*) as total FROM fines WHERE payment_status = 'paid'"),
-      database.get("SELECT COUNT(*) as total FROM fines WHERE payment_status = 'unpaid'"),
-      database.get("SELECT COUNT(*) as total FROM fines WHERE payment_status = 'overdue'"),
-      database.get("SELECT SUM(amount) as total FROM fines WHERE payment_status = 'paid'"),
-      database.get("SELECT SUM(amount) as total FROM fines WHERE payment_status = 'unpaid'")
-    ]);
+    // Get fines by payment status
+    const { data: fines, error } = await database.client
+      .from(TABLES.FINES)
+      .select('payment_status, amount');
+
+    if (error) {
+      throw error;
+    }
+
+    // Calculate statistics
+    const stats = (fines || []).reduce((acc, fine) => {
+      acc.total_fines++;
+      acc.total_amount += parseFloat(fine.amount) || 0;
+      
+      if (fine.payment_status === PAYMENT_STATUS.PAID) {
+        acc.paid_fines++;
+        acc.paid_amount += parseFloat(fine.amount) || 0;
+      } else if (fine.payment_status === PAYMENT_STATUS.UNPAID) {
+        acc.unpaid_fines++;
+        acc.unpaid_amount += parseFloat(fine.amount) || 0;
+      }
+      
+      return acc;
+    }, {
+      total_fines: 0,
+      paid_fines: 0,
+      unpaid_fines: 0,
+      total_amount: 0,
+      paid_amount: 0,
+      unpaid_amount: 0
+    });
+
+    // Get fines created today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayFines, error: todayError, count: todayCount } = await database.client
+      .from(TABLES.FINES)
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lt('created_at', `${today}T23:59:59.999Z`);
+
+    if (todayError) {
+      console.error('Error fetching today stats:', todayError);
+    }
 
     res.json({
       success: true,
       data: {
-        total_fines: stats[0].total,
-        paid_fines: stats[1].total,
-        unpaid_fines: stats[2].total,
-        overdue_fines: stats[3].total,
-        total_collected: stats[4].total || 0,
-        total_outstanding: stats[5].total || 0
+        ...stats,
+        new_today: todayCount || 0,
+        collection_rate: stats.total_fines > 0 ? (stats.paid_fines / stats.total_fines * 100).toFixed(2) : 0
       }
     });
   } catch (error) {
     console.error('Get fine stats error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch fine statistics'
+      message: 'Failed to fetch fine statistics',
+      error: error.message
+    });
+  }
+});
+
+// Search fines by fine ID or license plate
+router.get('/search/:query', async (req, res) => {
+  try {
+    const query = req.params.query;
+
+    const { data: fines, error } = await database.client
+      .from(TABLES.FINES)
+      .select(`
+        id, fine_id, offense_description, amount, payment_status, created_at,
+        dvla_vehicles:vehicle_id (
+          license_plate, manufacturer, model, owner_name
+        )
+      `)
+      .or(`fine_id.ilike.%${query}%,dvla_vehicles.license_plate.ilike.%${query}%`)
+      .limit(10)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        fines: fines || [],
+        query
+      }
+    });
+  } catch (error) {
+    console.error('Search fines error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search fines',
+      error: error.message
     });
   }
 });
