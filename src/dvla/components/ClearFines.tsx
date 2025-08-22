@@ -449,6 +449,66 @@ const ClearFines: React.FC = () => {
         </div>
       </div>
 
+      {/* Fines Summary */}
+      {fineRecords.length > 0 && (
+        <div className={`rounded-xl shadow-sm border p-4 mb-6 transition-colors duration-200 ${
+          darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-100'
+        }`}>
+          <h3 className={`text-lg font-semibold mb-3 transition-colors duration-200 ${
+            darkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>Available Fines ({fineRecords.length})</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {fineRecords.slice(0, 6).map((fine) => (
+              <button
+                key={fine.id}
+                onClick={() => loadFineData(fine)}
+                className={`p-3 rounded-lg border text-left transition-all duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : `${darkMode
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`
+                } ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`font-medium text-sm transition-colors duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'text-blue-600'
+                    : `${darkMode ? 'text-gray-100' : 'text-gray-900'}`
+                }`}>
+                  {fine.fine_id}
+                </div>
+                <div className={`text-xs transition-colors duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'text-blue-500'
+                    : `${darkMode ? 'text-gray-400' : 'text-gray-500'}`
+                }`}>
+                  {fine.vehicle?.license_plate} - ${fine.amount}
+                </div>
+                <div className={`inline-flex px-2 py-1 text-xs rounded-full mt-1 ${
+                  fine.payment_status === 'paid'
+                    ? 'bg-green-100 text-green-800'
+                    : fine.payment_status === 'overdue'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {fine.payment_status}
+                </div>
+              </button>
+            ))}
+          </div>
+          {fineRecords.length > 6 && (
+            <p className={`text-sm mt-3 transition-colors duration-200 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              ... and {fineRecords.length - 6} more fines. Use search to find specific fines.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {/* Left Column */}
