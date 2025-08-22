@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { logDataOperation } from '../../utils/auditLog';
 import { unifiedAPI } from '../../lib/unified-api';
+import * as XLSX from 'xlsx';
 
 interface FormData {
   // Vehicle Details
@@ -190,15 +191,101 @@ const VehicleDataEntry: React.FC = () => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
 
-    // Log vehicle data entry
-    logDataOperation('Vehicle Registered', `New vehicle registered: ${formData.licensePlate} (${formData.manufacturer} ${formData.model})`, 'dvla', 'high');
+    try {
+      // Convert form data to API format
+      const vehicleData = {
+        reg_number: formData.regNumber,
+        manufacturer: formData.manufacturer,
+        model: formData.model,
+        vehicle_type: formData.vehicleType,
+        chassis_number: formData.chassisNumber,
+        year_of_manufacture: formData.yearOfManufacture,
+        vin: formData.vin,
+        license_plate: formData.licensePlate,
+        color: formData.color,
+        use: formData.use,
+        date_of_entry: formData.dateOfEntry,
+        length: formData.length,
+        width: formData.width,
+        height: formData.height,
+        number_of_axles: formData.numberOfAxles,
+        number_of_wheels: formData.numberOfWheels,
+        tyre_size_front: formData.tyreSizeFront,
+        tyre_size_middle: formData.tyreSizeMiddle,
+        tyre_size_rear: formData.tyreSizeRear,
+        axle_load_front: formData.axleLoadFront,
+        axle_load_middle: formData.axleLoadMiddle,
+        axle_load_rear: formData.axleLoadRear,
+        weight: formData.weight,
+        engine_make: formData.engineMake,
+        engine_number: formData.engineNumber,
+        number_of_cylinders: formData.numberOfCylinders,
+        engine_cc: formData.engineCC,
+        horse_power: formData.horsePower,
+        owner_name: formData.fullName,
+        owner_address: formData.address,
+        owner_phone: formData.phoneNumber,
+        owner_email: formData.emailAddress
+      };
 
-    // Handle form submission logic here
-    alert('Vehicle data submitted successfully!');
+      // Save to database
+      const response = await unifiedAPI.createDVLAVehicle(vehicleData);
+
+      if (response.data) {
+        // Log vehicle data entry
+        logDataOperation('Vehicle Registered', `New vehicle registered: ${formData.licensePlate} (${formData.manufacturer} ${formData.model})`, 'dvla', 'high');
+
+        alert('Vehicle data submitted and saved to database successfully!');
+
+        // Reset form after successful submission
+        setFormData({
+          regNumber: '',
+          manufacturer: '',
+          model: '',
+          vehicleType: '',
+          chassisNumber: '',
+          yearOfManufacture: '',
+          vin: '',
+          licensePlate: '',
+          color: '',
+          use: '',
+          dateOfEntry: '',
+          length: '',
+          width: '',
+          height: '',
+          numberOfAxles: '',
+          numberOfWheels: '',
+          tyreSizeFront: '',
+          tyreSizeMiddle: '',
+          tyreSizeRear: '',
+          axleLoadFront: '',
+          axleLoadMiddle: '',
+          axleLoadRear: '',
+          weight: '',
+          engineMake: '',
+          engineNumber: '',
+          numberOfCylinders: '',
+          engineCC: '',
+          horsePower: '',
+          fullName: '',
+          address: '',
+          phoneNumber: '',
+          emailAddress: '',
+          documentType: '',
+          amountDue: '150.00',
+          paymentMethod: '',
+          transactionId: ''
+        });
+      } else {
+        alert('Error saving vehicle data. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting vehicle data:', error);
+      alert('Error saving vehicle data. Please try again.');
+    }
   };
 
   const handleCancel = () => {
@@ -206,26 +293,63 @@ const VehicleDataEntry: React.FC = () => {
     console.log('Form cancelled');
   };
 
-  // CSV Import functionality
-  const parseCSV = (csvText: string): ImportedVehicle[] => {
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const vehicles: ImportedVehicle[] = [];
+  // Excel Import functionality
+  const parseExcel = (file: File): Promise<ImportedVehicle[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
 
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i].trim() === '') continue;
-      
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      const vehicle: any = {};
-      
-      headers.forEach((header, index) => {
-        vehicle[header] = values[index] || '';
-      });
-      
-      vehicles.push(vehicle as ImportedVehicle);
-    }
-    
-    return vehicles;
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          const vehicles: ImportedVehicle[] = jsonData.map((row: any) => ({
+            regNumber: row.regNumber || row['Registration Number'] || '',
+            manufacturer: row.manufacturer || row['Manufacturer'] || '',
+            model: row.model || row['Model'] || '',
+            vehicleType: row.vehicleType || row['Vehicle Type'] || '',
+            chassisNumber: row.chassisNumber || row['Chassis Number'] || '',
+            yearOfManufacture: row.yearOfManufacture || row['Year of Manufacture'] || '',
+            vin: row.vin || row['VIN'] || '',
+            licensePlate: row.licensePlate || row['License Plate'] || '',
+            color: row.color || row['Color'] || '',
+            use: row.use || row['Use'] || '',
+            dateOfEntry: row.dateOfEntry || row['Date of Entry'] || '',
+            length: row.length || row['Length'] || '',
+            width: row.width || row['Width'] || '',
+            height: row.height || row['Height'] || '',
+            numberOfAxles: row.numberOfAxles || row['Number of Axles'] || '',
+            numberOfWheels: row.numberOfWheels || row['Number of Wheels'] || '',
+            tyreSizeFront: row.tyreSizeFront || row['Tyre Size Front'] || '',
+            tyreSizeMiddle: row.tyreSizeMiddle || row['Tyre Size Middle'] || '',
+            tyreSizeRear: row.tyreSizeRear || row['Tyre Size Rear'] || '',
+            axleLoadFront: row.axleLoadFront || row['Axle Load Front'] || '',
+            axleLoadMiddle: row.axleLoadMiddle || row['Axle Load Middle'] || '',
+            axleLoadRear: row.axleLoadRear || row['Axle Load Rear'] || '',
+            weight: row.weight || row['Weight'] || '',
+            engineMake: row.engineMake || row['Engine Make'] || '',
+            engineNumber: row.engineNumber || row['Engine Number'] || '',
+            numberOfCylinders: row.numberOfCylinders || row['Number of Cylinders'] || '',
+            engineCC: row.engineCC || row['Engine CC'] || '',
+            horsePower: row.horsePower || row['Horse Power'] || '',
+            fullName: row.fullName || row['Full Name'] || row['Owner Name'] || '',
+            address: row.address || row['Address'] || '',
+            phoneNumber: row.phoneNumber || row['Phone Number'] || '',
+            emailAddress: row.emailAddress || row['Email Address'] || ''
+          }));
+
+          resolve(vehicles);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => reject(new Error('Error reading file'));
+      reader.readAsBinaryString(file);
+    });
   };
 
   const validateVehicleData = (vehicle: ImportedVehicle): { isValid: boolean; errors: string[] } => {
@@ -249,25 +373,27 @@ const VehicleDataEntry: React.FC = () => {
 
   const handleImportFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'text/csv') {
+    if (file && (file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                 file.type === 'application/vnd.ms-excel' ||
+                 file.name.endsWith('.xlsx') ||
+                 file.name.endsWith('.xls'))) {
       setImportFile(file);
       setImportStatus('idle');
       setImportMessage('');
     } else {
-      setImportMessage('Please select a valid CSV file');
+      setImportMessage('Please select a valid Excel file (.xlsx or .xls)');
       setImportStatus('error');
     }
   };
 
   const processImportFile = async () => {
     if (!importFile) return;
-    
+
     setImportStatus('processing');
     setImportProgress(0);
-    
+
     try {
-      const text = await importFile.text();
-      const vehicles = parseCSV(text);
+      const vehicles = await parseExcel(importFile);
       
       // Validate all vehicles
       const validationResults = vehicles.map(vehicle => ({
@@ -295,13 +421,13 @@ const VehicleDataEntry: React.FC = () => {
       } else {
         setImportMessage(`${validVehicles.length} vehicles ready for import`);
       }
-      
+
       setImportStatus('success');
-      
+
     } catch (error) {
       setImportStatus('error');
-      setImportMessage('Error processing CSV file');
-      console.error('CSV processing error:', error);
+      setImportMessage('Error processing Excel file');
+      console.error('Excel processing error:', error);
     }
   };
 
@@ -392,7 +518,7 @@ const VehicleDataEntry: React.FC = () => {
     }
   };
 
-  const downloadCSVTemplate = () => {
+  const downloadExcelTemplate = () => {
     const headers = [
       'regNumber', 'manufacturer', 'model', 'vehicleType', 'chassisNumber', 'yearOfManufacture',
       'vin', 'licensePlate', 'color', 'use', 'dateOfEntry', 'length', 'width', 'height',
@@ -400,21 +526,23 @@ const VehicleDataEntry: React.FC = () => {
       'axleLoadFront', 'axleLoadMiddle', 'axleLoadRear', 'weight', 'engineMake', 'engineNumber',
       'numberOfCylinders', 'engineCC', 'horsePower', 'fullName', 'address', 'phoneNumber', 'emailAddress'
     ];
-    
+
     const sampleData = [
       'REG001', 'Toyota', 'Corolla', 'Sedan', 'CHASSIS001', '2023', 'VIN001', 'GR 1234 - 23', 'Silver', 'Private', '2023-01-15',
       '4.5', '1.8', '1.5', '2', '4', '205/55R16', '', '', '800', '', '', '1200', 'Toyota', 'ENG001', '4', '1800', '140',
       'Kwame Asante', '123 Ring Road, Accra', '+233-24-123-4567', 'kwame@example.com'
     ];
-    
-    const csvContent = [headers.join(','), sampleData.join(',')].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'vehicle_import_template.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const wsData = [headers, sampleData];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Vehicle Data');
+
+    // Generate Excel file and download
+    XLSX.writeFile(wb, 'vehicle_import_template.xlsx');
   };
 
   return (
@@ -440,10 +568,10 @@ const VehicleDataEntry: React.FC = () => {
           <div className="flex space-x-3">
             <button
               type="button"
-              onClick={downloadCSVTemplate}
+              onClick={downloadExcelTemplate}
               className={`flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium ${
-                darkMode 
-                  ? 'text-gray-300 border-gray-600 hover:bg-gray-800' 
+                darkMode
+                  ? 'text-gray-300 border-gray-600 hover:bg-gray-800'
                   : 'text-gray-700'
               }`}
             >
@@ -457,7 +585,7 @@ const VehicleDataEntry: React.FC = () => {
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-sm"
             >
               <Upload className="w-4 h-4 mr-2" />
-              Import CSV
+              Import Excel
             </button>
           </div>
         </div>
@@ -1151,7 +1279,7 @@ const VehicleDataEntry: React.FC = () => {
                 <label className={`block text-sm font-medium mb-3 transition-colors duration-200 ${
                   darkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Select CSV File
+                  Select Excel File
                 </label>
                 
                 <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200 ${
@@ -1166,18 +1294,18 @@ const VehicleDataEntry: React.FC = () => {
                   <p className={`text-sm mb-4 transition-colors duration-200 ${
                     darkMode ? 'text-gray-300' : 'text-gray-600'
                   }`}>
-                    {importFile ? importFile.name : 'Drag and drop a CSV file here, or click to select'}
+                    {importFile ? importFile.name : 'Drag and drop an Excel file here, or click to select'}
                   </p>
                   
                   <input
                     type="file"
-                    accept=".csv"
+                    accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                     onChange={handleImportFileSelect}
                     className="hidden"
-                    id="csv-import"
+                    id="excel-import"
                   />
                   <label
-                    htmlFor="csv-import"
+                    htmlFor="excel-import"
                     className={`inline-flex items-center px-4 py-2 border border-transparent rounded-lg font-medium cursor-pointer transition-colors duration-200 ${
                       darkMode
                         ? 'bg-blue-600 text-white hover:bg-blue-700'

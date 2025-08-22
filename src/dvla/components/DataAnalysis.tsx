@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { 
-  Calendar, 
-  ChevronDown, 
-  Car, 
-  RefreshCw, 
-  AlertTriangle, 
+import { unifiedAPI, DVLAAnalytics } from '../../lib/unified-api';
+import {
+  Calendar,
+  ChevronDown,
+  Car,
+  RefreshCw,
+  AlertTriangle,
   Clock,
   TrendingUp,
   PieChart,
@@ -18,6 +19,37 @@ const DataAnalysis: React.FC = () => {
   const [dateTo, setDateTo] = useState('');
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState('All Vehicle Types');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [analytics, setAnalytics] = useState<DVLAAnalytics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await unifiedAPI.getDVLAAnalytics();
+      console.log('Analytics API response:', response);
+      if (response.data) {
+        setAnalytics(response.data);
+      } else {
+        setError('Failed to load analytics data');
+      }
+    } catch (err) {
+      console.error('Error fetching analytics data:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
+      setError('Failed to load analytics data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const vehicleTypeOptions = [
     'All Vehicle Types',
@@ -29,8 +61,10 @@ const DataAnalysis: React.FC = () => {
     'Motorcycle'
   ];
 
-  const handleApplyFilters = () => {
+  const handleApplyFilters = async () => {
     console.log('Applying filters:', { dateFrom, dateTo, vehicleTypeFilter });
+    // In a real implementation, you would pass these filters to the API
+    await fetchAnalyticsData();
   };
 
   const handleVehicleTypeFilter = (type: string) => {
@@ -45,10 +79,10 @@ const DataAnalysis: React.FC = () => {
       <div className="mb-8">
         <h1 className={`text-3xl font-bold mb-2 transition-colors duration-200 ${
           darkMode ? 'text-gray-100' : 'text-gray-900'
-        }`}></h1>
+        }`}>Data Analysis & Reporting</h1>
         <p className={`transition-colors duration-200 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}></p>
+        }`}>Comprehensive analytics and insights for DVLA operations</p>
       </div>
 
       {/* Filter Bar */}
@@ -159,66 +193,152 @@ const DataAnalysis: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span className={`ml-3 transition-colors duration-200 ${
+            darkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>Loading analytics data...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className={`p-8 text-center transition-colors duration-200 ${
+          darkMode ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
+          <div className={`text-red-600 mb-4 transition-colors duration-200 ${
+            darkMode ? 'text-red-400' : 'text-red-600'
+          }`}>
+            {error}
+          </div>
+          <button
+            onClick={fetchAnalyticsData}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards - Top Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Total Vehicles Registered */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-2">Total Vehicles Registered</p>
-              <p className="text-3xl font-bold text-blue-600 mb-1">12,450</p>
-              <p className="text-sm text-green-600 font-medium">Last 30 days: +5%</p>
-            </div>
-            <div className="p-3 rounded-lg bg-blue-50 text-blue-500">
-              <Car size={24} />
+      {!isLoading && !error && analytics && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Total Vehicles Registered */}
+          <div className={`rounded-xl shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Total Vehicles Registered</p>
+                <p className="text-3xl font-bold text-blue-600 mb-1">{analytics.total_vehicles.toLocaleString()}</p>
+                <p className="text-sm text-green-600 font-medium">Renewal Rate: {analytics.renewal_rate}%</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-50 text-blue-500">
+                <Car size={24} />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Renewals This Month */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-2">Renewals This Month</p>
-              <p className="text-3xl font-bold text-green-600 mb-1">875</p>
-              <p className="text-sm text-gray-600 font-medium">Target: 1,000</p>
-            </div>
-            <div className="p-3 rounded-lg bg-green-50 text-green-500">
-              <RefreshCw size={24} />
+          {/* Renewals This Month */}
+          <div className={`rounded-xl shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Total Renewals</p>
+                <p className="text-3xl font-bold text-green-600 mb-1">{analytics.total_renewals.toLocaleString()}</p>
+                <p className={`text-sm font-medium transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Pending: {analytics.pending_renewals}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-50 text-green-500">
+                <RefreshCw size={24} />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Overdue Renewals */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-2">Overdue Renewals</p>
-              <p className="text-3xl font-bold text-red-600 mb-1">120</p>
-              <p className="text-sm text-red-600 font-medium">Action required</p>
-            </div>
-            <div className="p-3 rounded-lg bg-red-50 text-red-500">
-              <AlertTriangle size={24} />
+          {/* Fines Overview */}
+          <div className={`rounded-xl shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Total Fines</p>
+                <p className="text-3xl font-bold text-red-600 mb-1">{analytics.total_fines.toLocaleString()}</p>
+                <p className="text-sm text-red-600 font-medium">Unpaid: {analytics.unpaid_fines}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-red-50 text-red-500">
+                <AlertTriangle size={24} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Average Processing Time - Middle Row */}
-      <div className="grid grid-cols-1 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 mb-2">Average Processing Time</p>
-              <p className="text-4xl font-bold text-gray-900 mb-1">2.5 Days</p>
-              <p className="text-sm text-gray-600 font-medium">From submission to approval</p>
+      {/* Revenue and Performance - Middle Row */}
+      {!isLoading && !error && analytics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className={`rounded-xl shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Revenue This Month</p>
+                <p className={`text-4xl font-bold mb-1 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}>${analytics.revenue_this_month.toLocaleString()}</p>
+                <p className={`text-sm font-medium transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>From renewals and fines</p>
+              </div>
+              <div className="p-4 rounded-lg bg-purple-50 text-purple-500">
+                <TrendingUp size={32} />
+              </div>
             </div>
-            <div className="p-4 rounded-lg bg-purple-50 text-purple-500">
-              <Clock size={32} />
+          </div>
+
+          <div className={`rounded-xl shadow-sm border p-6 hover:shadow-md transition-all duration-200 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700'
+              : 'bg-white border-gray-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm font-medium mb-2 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Fine Payment Rate</p>
+                <p className={`text-4xl font-bold mb-1 transition-colors duration-200 ${
+                  darkMode ? 'text-gray-100' : 'text-gray-900'
+                }`}>{analytics.fine_payment_rate}%</p>
+                <p className={`text-sm font-medium transition-colors duration-200 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Collection efficiency</p>
+              </div>
+              <div className="p-4 rounded-lg bg-green-50 text-green-500">
+                <Clock size={32} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Chart Areas - Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -293,27 +413,59 @@ const DataAnalysis: React.FC = () => {
       </div>
 
       {/* Additional Analytics Summary */}
-      <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Analytics Summary</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-gray-900">98.5%</p>
-            <p className="text-sm text-gray-600">Data Accuracy</p>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-gray-900">1.2 Days</p>
-            <p className="text-sm text-gray-600">Avg Response Time</p>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-gray-900">15,234</p>
-            <p className="text-sm text-gray-600">Total Transactions</p>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-gray-900">99.9%</p>
-            <p className="text-sm text-gray-600">System Uptime</p>
+      {!isLoading && !error && analytics && (
+        <div className={`mt-8 rounded-xl shadow-sm border p-6 transition-colors duration-200 ${
+          darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-100'
+        }`}>
+          <h3 className={`text-lg font-semibold mb-4 transition-colors duration-200 ${
+            darkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>Quick Analytics Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className={`text-center p-4 rounded-lg transition-colors duration-200 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            }`}>
+              <p className={`text-2xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>{analytics.renewal_rate}%</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Renewal Rate</p>
+            </div>
+            <div className={`text-center p-4 rounded-lg transition-colors duration-200 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            }`}>
+              <p className={`text-2xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>{analytics.fine_payment_rate}%</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Fine Payment Rate</p>
+            </div>
+            <div className={`text-center p-4 rounded-lg transition-colors duration-200 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            }`}>
+              <p className={`text-2xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>${analytics.revenue_this_month.toLocaleString()}</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Monthly Revenue</p>
+            </div>
+            <div className={`text-center p-4 rounded-lg transition-colors duration-200 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            }`}>
+              <p className={`text-2xl font-bold transition-colors duration-200 ${
+                darkMode ? 'text-gray-100' : 'text-gray-900'
+              }`}>{analytics.total_vehicles + analytics.total_renewals + analytics.total_fines}</p>
+              <p className={`text-sm transition-colors duration-200 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Total Records</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

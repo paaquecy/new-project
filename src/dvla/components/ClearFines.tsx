@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { 
-  Search, 
-  ChevronDown, 
-  FileText, 
-  Calendar, 
-  Car, 
-  CreditCard, 
-  ClipboardList, 
+import { unifiedAPI, DVLAFine, DVLAVehicle } from '../../lib/unified-api';
+import {
+  Search,
+  ChevronDown,
+  FileText,
+  Calendar,
+  Car,
+  CreditCard,
+  ClipboardList,
   ListChecks,
   Upload,
   X
@@ -29,6 +30,21 @@ interface FormData {
   notes: string;
 }
 
+interface FineRecord {
+  id: number;
+  fine_id: string;
+  vehicle_id: number;
+  offense_description: string;
+  offense_date: string;
+  offense_location: string;
+  amount: number;
+  payment_status: string;
+  payment_method?: string;
+  marked_as_cleared: boolean;
+  notes?: string;
+  vehicle?: DVLAVehicle;
+}
+
 const ClearFines: React.FC = () => {
   const { darkMode } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,22 +54,162 @@ const ClearFines: React.FC = () => {
   const [evidenceDragActive, setEvidenceDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
-  
+  const [fineRecords, setFineRecords] = useState<FineRecord[]>([]);
+  const [selectedFine, setSelectedFine] = useState<FineRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<FormData>({
-    fineId: 'FINE-001234',
-    offenseDescription: 'Speeding (45mph in 30mph zone)',
-    dateTime: '26/10/2023, 10:30 AM',
-    location: 'High Street, Accra SW1A 0AA',
-    amount: '150.00',
+    fineId: '',
+    offenseDescription: '',
+    dateTime: '',
+    location: '',
+    amount: '',
     paymentStatus: 'Unpaid',
-    vehiclePlate: 'GT-1442-20',
-    vehicleMakeModel: 'Toyota Camry',
-    ownerName: 'Ayam Idumba',
-    ownerContact: '+44 7700 900123, jane.doe@example.com',
+    vehiclePlate: '',
+    vehicleMakeModel: '',
+    ownerName: '',
+    ownerContact: '',
     paymentMethod: '',
     markedAsCleared: false,
     notes: ''
   });
+
+  useEffect(() => {
+    fetchFinesData();
+  }, []);
+
+  const fetchFinesData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch fines and vehicles
+      const [finesResponse, vehiclesResponse] = await Promise.all([
+        unifiedAPI.getDVLAFines(),
+        unifiedAPI.getDVLAVehicles()
+      ]);
+
+      console.log('API Responses:', {
+        finesResponse,
+        vehiclesResponse,
+        finesDataType: typeof finesResponse.data,
+        vehiclesDataType: typeof vehiclesResponse.data,
+        finesIsArray: Array.isArray(finesResponse.data),
+        vehiclesIsArray: Array.isArray(vehiclesResponse.data)
+      });
+
+      if (finesResponse.data && vehiclesResponse.data) {
+        const fines = Array.isArray(finesResponse.data) ? finesResponse.data : [];
+        const vehicles = Array.isArray(vehiclesResponse.data) ? vehiclesResponse.data : [];
+
+        console.log('Fines data:', fines, 'Vehicles data:', vehicles);
+
+        // Create a map of vehicles
+        const vehicleMap = new Map();
+        vehicles.forEach((vehicle: DVLAVehicle) => {
+          vehicleMap.set(vehicle.id, vehicle);
+        });
+
+        // Combine fines with vehicle data
+        const finesWithVehicles: FineRecord[] = fines.map((fine: DVLAFine) => ({
+          ...fine,
+          vehicle: vehicleMap.get(fine.vehicle_id)
+        }));
+
+        setFineRecords(finesWithVehicles);
+
+        // Auto-select first fine if available
+        if (finesWithVehicles.length > 0) {
+          loadFineData(finesWithVehicles[0]);
+        } else {
+          console.log('No fines data available');
+          // Set empty form data when no fines are available
+          setFormData({
+            fineId: 'No fines available',
+            offenseDescription: '',
+            dateTime: '',
+            location: '',
+            amount: '',
+            paymentStatus: 'Unpaid',
+            vehiclePlate: '',
+            vehicleMakeModel: '',
+            ownerName: '',
+            ownerContact: '',
+            paymentMethod: '',
+            markedAsCleared: false,
+            notes: ''
+          });
+        }
+      } else {
+        console.log('API responses missing data:', { finesResponse, vehiclesResponse });
+        setError('Failed to load fines data - API responses missing data');
+      }
+    } catch (err) {
+      console.error('Error fetching fines data:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
+      setError('Failed to load fines data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadFineData = (fine: FineRecord) => {
+    setSelectedFine(fine);
+    const vehicle = fine.vehicle;
+
+    setFormData({
+      fineId: fine.fine_id,
+      offenseDescription: fine.offense_description,
+      dateTime: new Date(fine.offense_date).toLocaleString(),
+      location: fine.offense_location,
+      amount: fine.amount.toString(),
+      paymentStatus: fine.payment_status,
+      vehiclePlate: vehicle?.license_plate || '',
+      vehicleMakeModel: vehicle ? `${vehicle.manufacturer} ${vehicle.model}` : '',
+      ownerName: vehicle?.owner_name || '',
+      ownerContact: vehicle?.owner_phone || '',
+      paymentMethod: fine.payment_method || '',
+      markedAsCleared: fine.marked_as_cleared,
+      notes: fine.notes || ''
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center h-64 transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className={`ml-3 transition-colors duration-200 ${
+          darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>Loading fines data...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`p-8 text-center transition-colors duration-200 ${
+        darkMode ? 'bg-gray-900' : 'bg-gray-50'
+      }`}>
+        <div className={`text-red-600 mb-4 transition-colors duration-200 ${
+          darkMode ? 'text-red-400' : 'text-red-600'
+        }`}>
+          {error}
+        </div>
+        <button
+          onClick={fetchFinesData}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   const statusOptions = ['All', 'Paid', 'Unpaid', 'Overdue'];
   const paymentMethods = ['Card', 'Mobile Money', 'Bank Transfer'];
@@ -153,7 +309,22 @@ const ClearFines: React.FC = () => {
   };
 
   const handleSearch = () => {
-    console.log('Search:', searchTerm, 'Status:', statusFilter);
+    if (!searchTerm.trim()) {
+      alert('Please enter a search term');
+      return;
+    }
+
+    const foundFine = fineRecords.find(fine =>
+      fine.fine_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fine.vehicle?.license_plate?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (foundFine) {
+      loadFineData(foundFine);
+      alert('Fine record found and loaded');
+    } else {
+      alert('No fine record found for the search term');
+    }
   };
 
   const handleViewLinkedOffenses = () => {
@@ -172,12 +343,51 @@ const ClearFines: React.FC = () => {
     console.log('Cancel');
   };
 
-  const handleSaveChanges = () => {
-    console.log('Save changes:', formData);
+  const handleSaveChanges = async () => {
+    if (!selectedFine) {
+      alert('No fine selected');
+      return;
+    }
+
+    try {
+      const paymentData = {
+        payment_status: formData.paymentStatus,
+        payment_method: formData.paymentMethod,
+        marked_as_cleared: formData.markedAsCleared,
+        notes: formData.notes
+      };
+
+      const response = await unifiedAPI.updateDVLAFinePayment(selectedFine.fine_id, paymentData);
+      if (response.data) {
+        alert('Fine updated successfully!');
+        await fetchFinesData(); // Refresh data
+      } else {
+        alert('Failed to update fine');
+      }
+    } catch (error) {
+      console.error('Error updating fine:', error);
+      alert('Failed to update fine');
+    }
   };
 
-  const handleClearFine = () => {
-    console.log('Clear fine:', formData);
+  const handleClearFine = async () => {
+    if (!selectedFine) {
+      alert('No fine selected');
+      return;
+    }
+
+    try {
+      const response = await unifiedAPI.clearDVLAFine(selectedFine.fine_id);
+      if (response.data) {
+        alert('Fine cleared successfully!');
+        await fetchFinesData(); // Refresh data
+      } else {
+        alert('Failed to clear fine');
+      }
+    } catch (error) {
+      console.error('Error clearing fine:', error);
+      alert('Failed to clear fine');
+    }
   };
 
   return (
@@ -187,10 +397,10 @@ const ClearFines: React.FC = () => {
       <div className="mb-6 sm:mb-8">
         <h1 className={`text-2xl sm:text-3xl font-bold mb-2 transition-colors duration-200 ${
           darkMode ? 'text-gray-100' : 'text-gray-900'
-        }`}></h1>
+        }`}>Clear Fines</h1>
         <p className={`text-sm sm:text-base transition-colors duration-200 ${
           darkMode ? 'text-gray-400' : 'text-gray-600'
-        }`}></p>
+        }`}>Manage and process fine payments and clearances</p>
       </div>
 
       {/* Search and Filter Section */}
@@ -272,6 +482,66 @@ const ClearFines: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Fines Summary */}
+      {fineRecords.length > 0 && (
+        <div className={`rounded-xl shadow-sm border p-4 mb-6 transition-colors duration-200 ${
+          darkMode
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-white border-gray-100'
+        }`}>
+          <h3 className={`text-lg font-semibold mb-3 transition-colors duration-200 ${
+            darkMode ? 'text-gray-100' : 'text-gray-900'
+          }`}>Available Fines ({fineRecords.length})</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {fineRecords.slice(0, 6).map((fine) => (
+              <button
+                key={fine.id}
+                onClick={() => loadFineData(fine)}
+                className={`p-3 rounded-lg border text-left transition-all duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : `${darkMode
+                        ? 'border-gray-600 hover:border-gray-500'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`
+                } ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`font-medium text-sm transition-colors duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'text-blue-600'
+                    : `${darkMode ? 'text-gray-100' : 'text-gray-900'}`
+                }`}>
+                  {fine.fine_id}
+                </div>
+                <div className={`text-xs transition-colors duration-200 ${
+                  selectedFine?.id === fine.id
+                    ? 'text-blue-500'
+                    : `${darkMode ? 'text-gray-400' : 'text-gray-500'}`
+                }`}>
+                  {fine.vehicle?.license_plate} - ${fine.amount}
+                </div>
+                <div className={`inline-flex px-2 py-1 text-xs rounded-full mt-1 ${
+                  fine.payment_status === 'paid'
+                    ? 'bg-green-100 text-green-800'
+                    : fine.payment_status === 'overdue'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-orange-100 text-orange-800'
+                }`}>
+                  {fine.payment_status}
+                </div>
+              </button>
+            ))}
+          </div>
+          {fineRecords.length > 6 && (
+            <p className={`text-sm mt-3 transition-colors duration-200 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              ... and {fineRecords.length - 6} more fines. Use search to find specific fines.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">

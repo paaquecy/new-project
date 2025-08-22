@@ -68,27 +68,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onItemClick, isOpen, onCl
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 py-4 sm:py-6 overflow-y-auto">
-        <ul className="space-y-2 px-4">
+      <nav className="flex-1 py-4 sm:py-6 overflow-x-auto">
+        <ul className="flex flex-wrap gap-2 px-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeItem === item.id;
-            
+
             return (
               <li key={item.id}>
                 <button
                   onClick={() => onItemClick(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 whitespace-nowrap ${
                     isActive
                       ? `${darkMode ? 'bg-blue-500 text-white' : 'bg-blue-600 text-white'} shadow-lg`
-                      : `${darkMode 
-                          ? 'text-gray-300 hover:bg-gray-700 hover:text-white' 
+                      : `${darkMode
+                          ? 'text-gray-300 hover:bg-gray-700 hover:text-white'
                           : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                         }`
                   }`}
                 >
-                  <Icon size={20} />
-                  <span className="font-medium text-sm sm:text-base">{item.label}</span>
+                  <Icon size={16} />
+                  <span className="font-medium text-xs sm:text-sm">{item.label}</span>
                 </button>
               </li>
             );
