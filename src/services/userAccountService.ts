@@ -481,21 +481,30 @@ class UserAccountService {
   // Get all approved users
   async getApprovedUsers(): Promise<UserAccount[]> {
     try {
-      const { data, error } = await supabase
-        .from('user_accounts')
-        .select('*')
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false });
+      const supabaseAvailable = await this.isSupabaseAvailable();
 
-      if (error) {
-        console.error('Error fetching approved users:', error);
-        return [];
+      if (supabaseAvailable) {
+        const { data, error } = await supabase
+          .from('user_accounts')
+          .select('*')
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        return data as UserAccount[];
+      } else {
+        // Use localStorage fallback
+        const users = getApprovedUsersFromStorage();
+        return users.map(user => this.convertToUserAccount(user));
       }
-
-      return data as UserAccount[];
     } catch (error) {
       console.error('Error fetching approved users:', error);
-      return [];
+      // Fallback to localStorage
+      const users = getApprovedUsersFromStorage();
+      return users.map(user => this.convertToUserAccount(user));
     }
   }
 
