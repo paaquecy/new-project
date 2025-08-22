@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview Detects Ghana number plates in an image.
  *
