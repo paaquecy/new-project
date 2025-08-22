@@ -26,46 +26,82 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ darkMode }) => {
+  const { vehicles, violations, fines } = useData();
+
+  // Calculate monthly growth data from actual database data
+  const monthlyGrowthData = useMemo(() => {
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+
+    return monthNames.map((month, index) => {
+      const monthStart = new Date(currentYear, index, 1);
+      const monthEnd = new Date(currentYear, index + 1, 0);
+
+      // Filter vehicles by registration date for this month
+      const monthVehicles = vehicles.filter(vehicle => {
+        if (!vehicle.registrationDate) return false;
+        const regDate = new Date(vehicle.registrationDate);
+        return regDate >= monthStart && regDate <= monthEnd;
+      });
+
+      // Filter violations by timestamp for this month
+      const monthViolations = violations.filter(violation => {
+        if (!violation.timestamp) return false;
+        const violationDate = new Date(violation.timestamp);
+        return violationDate >= monthStart && violationDate <= monthEnd;
+      });
+
+      // Count resolved violations (approved status)
+      const resolvedViolations = monthViolations.filter(violation =>
+        violation.status === 'approved'
+      );
+
+      return {
+        month,
+        vehicles: monthVehicles.length,
+        violations: monthViolations.length,
+        resolvedViolations: resolvedViolations.length
+      };
+    });
+  }, [vehicles, violations]);
+
+  // Calculate KPI data from actual database data
+  const activeViolations = violations.filter(v => v.status === 'pending').length;
+  const resolvedViolations = violations.filter(v => v.status === 'approved').length;
+  const totalVehicles = vehicles.length;
+
+  // Calculate monthly growth percentage
+  const currentMonth = monthlyGrowthData[new Date().getMonth()];
+  const previousMonth = monthlyGrowthData[new Date().getMonth() - 1] || monthlyGrowthData[11];
+  const monthlyGrowthPercent = previousMonth.vehicles > 0
+    ? Math.round(((currentMonth.vehicles - previousMonth.vehicles) / previousMonth.vehicles) * 100)
+    : 0;
+
   const kpiData = [
     {
-      value: '1,234',
-      label: 'Total Vehicles Scanned',
+      value: totalVehicles.toLocaleString(),
+      label: 'Total Vehicles Registered',
       icon: Car,
       color: 'text-blue-600'
     },
     {
-      value: '45',
+      value: activeViolations.toString(),
       label: 'Active Violations',
       icon: AlertTriangle,
       color: 'text-red-600'
     },
     {
-      value: '987',
+      value: resolvedViolations.toString(),
       label: 'Resolved Violations',
       icon: CheckCircle,
       color: 'text-green-600'
     },
     {
-      value: '+12%',
+      value: `${monthlyGrowthPercent >= 0 ? '+' : ''}${monthlyGrowthPercent}%`,
       label: 'Monthly Growth',
       icon: TrendingUp,
-      color: 'text-purple-600'
+      color: monthlyGrowthPercent >= 0 ? 'text-green-600' : 'text-red-600'
     }
-  ];
-
-  const monthlyGrowthData = [
-    { month: 'Jan', vehicles: 850, violations: 78, resolvedViolations: 72 },
-    { month: 'Feb', vehicles: 920, violations: 85, resolvedViolations: 80 },
-    { month: 'Mar', vehicles: 1050, violations: 92, resolvedViolations: 88 },
-    { month: 'Apr', vehicles: 1180, violations: 105, resolvedViolations: 98 },
-    { month: 'May', vehicles: 1320, violations: 118, resolvedViolations: 112 },
-    { month: 'Jun', vehicles: 1450, violations: 132, resolvedViolations: 125 },
-    { month: 'Jul', vehicles: 1580, violations: 145, resolvedViolations: 138 },
-    { month: 'Aug', vehicles: 1720, violations: 158, resolvedViolations: 152 },
-    { month: 'Sep', vehicles: 1850, violations: 172, resolvedViolations: 165 },
-    { month: 'Oct', vehicles: 1980, violations: 185, resolvedViolations: 178 },
-    { month: 'Nov', vehicles: 2120, violations: 198, resolvedViolations: 191 },
-    { month: 'Dec', vehicles: 2250, violations: 212, resolvedViolations: 205 }
   ];
 
   const recentActivities = [
