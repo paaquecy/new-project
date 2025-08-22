@@ -62,7 +62,34 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // Try DVLA login first via unified backend
+    // Check approved accounts from the user storage system
+    const { authenticateUser } = await import('../utils/userStorage');
+
+    // Try DVLA approved accounts
+    try {
+      const dvlaUser = authenticateUser({ username, password, accountType: 'dvla' });
+      if (dvlaUser) {
+        console.log('DVLA user authenticated from approved accounts:', dvlaUser);
+        onLogin('dvla');
+        return;
+      }
+    } catch (err) {
+      console.log('DVLA approved account check failed:', err);
+    }
+
+    // Try Police approved accounts
+    try {
+      const policeUser = authenticateUser({ username, password, accountType: 'police' });
+      if (policeUser) {
+        console.log('Police user authenticated from approved accounts:', policeUser);
+        onLogin('police');
+        return;
+      }
+    } catch (err) {
+      console.log('Police approved account check failed:', err);
+    }
+
+    // Try DVLA login via unified backend (fallback)
     try {
       const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
       if (dvlaLogin.data && !dvlaLogin.error) {
