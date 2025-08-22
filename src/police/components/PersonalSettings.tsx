@@ -228,8 +228,43 @@ const PersonalSettings = () => {
     }
   };
 
-  const handleChangeProfilePhoto = () => {
-    alert('Profile photo change feature would open camera/file picker here');
+  const handleChangeProfilePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await unifiedAPI.uploadProfilePicture(file);
+
+      if (response.data) {
+        // Update profile data with new picture URL
+        setProfileData(prev => ({
+          ...prev,
+          profilePicture: response.data.profile_picture_url
+        }));
+
+        alert('Profile picture updated successfully!');
+      } else {
+        throw new Error('Failed to upload profile picture');
+      }
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      alert('Failed to upload profile picture. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
