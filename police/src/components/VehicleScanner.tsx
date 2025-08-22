@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, 
-  Scan, 
-  Eye, 
+import {
+  Search,
+  Scan,
+  Eye,
   Camera,
   CheckCircle,
   AlertCircle,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useCamera } from '../hooks/useCamera';
 import { plateDetector, PlateDetectionResult } from '../utils/plateDetection';
+import { unifiedAPI } from '../lib/unified-api';
 
 const VehicleScanner = () => {
   const [plateInput, setPlateInput] = useState('');
