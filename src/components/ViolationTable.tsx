@@ -25,7 +25,10 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
   statusFilter,
   dateFilter
 }) => {
-  const [violations, setViolations] = useState<Violation[]>([
+  const { violations: dbViolations, updateViolation } = useData();
+
+  // Mock data as fallback
+  const mockViolations: Violation[] = [
     {
       id: 'VIO001',
       plateNumber: 'OT-2387-21',
@@ -66,7 +69,41 @@ const ViolationTable: React.FC<ViolationTableProps> = ({
       location: 'Downtown Area',
       status: 'open'
     }
-  ]);
+  ];
+
+  // Convert database violations to local format
+  const convertDbViolationToLocal = (dbViolation: ViolationRecord): Violation => {
+    // Map database status to local status
+    const statusMap: Record<string, 'open' | 'pending' | 'resolved'> = {
+      'pending': 'pending',
+      'approved': 'resolved',
+      'rejected': 'open'
+    };
+
+    return {
+      id: dbViolation.id,
+      plateNumber: dbViolation.plateNumber,
+      type: dbViolation.violationType,
+      dateTime: new Date(dbViolation.timestamp).toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      location: dbViolation.location,
+      status: statusMap[dbViolation.status] || 'open'
+    };
+  };
+
+  // Use database data if available, otherwise use mock data
+  const violations = useMemo(() => {
+    if (dbViolations && dbViolations.length > 0) {
+      return dbViolations.map(convertDbViolationToLocal);
+    }
+    return mockViolations;
+  }, [dbViolations]);
 
   const filteredViolations = useMemo(() => {
     return violations.filter(violation => {
