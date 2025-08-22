@@ -98,44 +98,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onRegister }) => {
       return;
     }
 
-    // For any other credentials, try to authenticate and determine app based on success
-    let authSuccess = false;
-
-    // Try DVLA authentication
-    try {
-      const dvlaLogin = await unifiedAPI.login(username, password, 'dvla');
-      if (dvlaLogin.data && !dvlaLogin.error) {
-        onLogin('dvla');
-        return;
-      }
-    } catch (err) {
-      console.log('DVLA authentication failed for unknown credentials:', err);
-    }
-
-    // Try Police authentication
-    try {
-      // Try Supabase authentication
-      if (signIn && typeof signIn === 'function') {
-        const result = await signIn(`${username}@police.gov.gh`, password);
-        if (result && result.data && !result.error) {
-          console.log('Police officer authenticated via Supabase:', result.data.user);
-          onLogin('police');
-          return;
-        }
-      }
-
-      // Try unified backend
-      const policeLogin = await unifiedAPI.login(username, password, 'police');
-      if (policeLogin.data && !policeLogin.error) {
-        onLogin('police');
-        return;
-      }
-    } catch (error) {
-      console.log('Police authentication failed for unknown credentials:', error);
-    }
-
-    // If no authentication succeeded, show error
-    alert('Invalid credentials. Please check your username and password.\n\nFor Police Officers: Use your Badge Number as username and your assigned password\nFor DVLA Officers: Use your ID Number as username\nFor Supervisors: Use your Supervisor ID');
+    // If no specific credentials matched, show error
+    alert('Invalid credentials. Please check your username and password.\n\nValid credentials:\n• Main Admin: 4231220075 / Wattaddo020\n• Supervisor: 0203549815 / Killerman020\n• DVLA Officer: 0987654321 / Bigfish020\n• Police Officer: 1234567890 / Madman020');
   };
 
   const handleRegisterClick = () => {
