@@ -521,7 +521,7 @@ const VehicleScanner = () => {
   };
 
   const handleCapturePlate = async () => {
-    console.log('📸 Capture button clicked - capturing image then performing plate detection');
+    console.log('📸 Capture button clicked - capturing image for Ghana plate detection');
 
     if (!cameraActive) {
       console.warn('❌ Camera not active, cannot capture');
@@ -549,13 +549,12 @@ const VehicleScanner = () => {
       return;
     }
 
-    // Convert canvas to data URL for storage/display
+    // Convert canvas to data URL for AI analysis
     const imageDataUrl = frame.toDataURL('image/jpeg', 0.8);
     console.log('✅ Camera frame captured successfully');
     console.log('📊 Image data URL length:', imageDataUrl.length);
-    console.log('📊 Image data format:', imageDataUrl.substring(0, 50));
 
-    // Set the captured image in state for processing (hidden from user)
+    // Set the captured image in state for processing
     setCapturedImage(imageDataUrl);
 
     // Show analysis in progress
@@ -567,85 +566,26 @@ const VehicleScanner = () => {
       statusType: 'clean'
     });
 
-    console.log('🎯 Starting license plate detection on captured image...');
+    console.log('🤖 Starting Ghana AI plate detection on captured image...');
 
     try {
-      // Analyze the captured image directly
-      console.log('🔍 Analyzing captured image for plate detection...');
+      // Use Ghana AI detection system
+      console.log('🔍 Analyzing captured image with Ghana AI detection...');
 
-      let result = null;
+      const aiResult = await detectGhanaNumberPlate({
+        photoDataUri: imageDataUrl
+      });
 
-      // Try using the captured canvas directly first (most reliable)
-      console.log('🎨 Attempting detection using captured canvas directly...');
-      try {
-        console.log('✅ Using captured canvas for detection:', { width: frame.width, height: frame.height });
+      console.log('🎯 Ghana AI detection result:', aiResult);
 
-        switch (detectorType) {
-          case 'gemini':
-          case 'yolo':
-            console.log('🤖 Using YOLOv8+OCR for plate detection...');
-            result = await yoloV8PlateDetector.detectPlate(frame);
-            break;
-          case 'custom':
-            result = await customYOLODetector.detectPlate(frame);
-            break;
-          case 'simple':
-            result = await simplePlateDetector.detectPlate(frame);
-            break;
-          default:
-            console.log('🤖 Using default YOLOv8+OCR for plate detection...');
-            result = await yoloV8PlateDetector.detectPlate(frame);
-        }
-      } catch (canvasError) {
-        console.warn('❌ Detection failed, trying Image element approach:', canvasError);
-
-        // Fallback: Create an image element from the captured image data URL
-        console.log('🖼️ Fallback: Creating image from captured data URL...');
-        console.log('📊 Image data URL length:', imageDataUrl.length);
-        console.log('📊 Image data type:', imageDataUrl.substring(0, 50));
-
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = () => {
-            console.log('✅ Image loaded successfully:', { width: img.width, height: img.height });
-            resolve(img);
-          };
-          img.onerror = (errorEvent) => {
-            console.error('❌ Image loading failed:', errorEvent);
-            reject(new Error(`Failed to load captured image: ${errorEvent.type}`));
-          };
-          img.src = imageDataUrl;
-        });
-
-        // Try detection on the image element
-        switch (detectorType) {
-          case 'gemini':
-          case 'yolo':
-            result = await yoloV8PlateDetector.detectPlate(img);
-            break;
-          case 'custom':
-            result = await customYOLODetector.detectPlate(img);
-            break;
-          case 'simple':
-            result = await simplePlateDetector.detectPlate(img);
-            break;
-          default:
-            result = await yoloV8PlateDetector.detectPlate(img);
-        }
-      }
-
-      console.log('🎯 Detection result for captured image:', result);
-
-      // Process the detection result
-      if (result && result.plateNumber) {
-        console.log('✅ Plate detected from captured image:', result);
-        console.log('📊 Detection confidence:', result.confidence);
-
-        // Always show the detected plate number, regardless of confidence
-        const detectedPlateNumber = result.plateNumber;
+      // Process the AI detection result
+      if (aiResult.numberPlateDetected && aiResult.numberPlateText) {
+        console.log('✅ Ghana plate detected from captured image:', aiResult.numberPlateText);
 
         // Mark that we detected a plate from the image
         setPlateDetectedFromImage(true);
+
+        const detectedPlateNumber = aiResult.numberPlateText;
 
         // Set initial results showing the detected plate number
         setScanResults({
@@ -672,7 +612,8 @@ const VehicleScanner = () => {
               status: lookup.outstandingViolations > 0 ? `${lookup.outstandingViolations} Outstanding Violation(s)` : 'No Violations',
               statusType: lookup.outstandingViolations > 0 ? 'violation' : 'clean'
             });
-            setDetectionResult(result); // Show detection overlay on camera
+            // Clear old detection result since we're using AI now
+            setDetectionResult(null);
           } else {
             // Vehicle NOT found in database - show detected plate but N/A for other info
             setScanResults({
@@ -682,7 +623,7 @@ const VehicleScanner = () => {
               status: 'Not Registered',
               statusType: 'violation'
             });
-            setDetectionResult(null); // Don't show detection overlay if not registered
+            setDetectionResult(null);
           }
         } catch (lookupError) {
           console.error('Lookup failed after detection:', lookupError);
@@ -697,7 +638,7 @@ const VehicleScanner = () => {
           setDetectionResult(null);
         }
       } else {
-        console.log('❌ No plate detected');
+        console.log('❌ No Ghana plate detected by AI');
         setPlateDetectedFromImage(false);
         setScanResults({
           plateNumber: 'N/A',
@@ -709,9 +650,9 @@ const VehicleScanner = () => {
         setDetectionResult(null);
       }
 
-      console.log('✅ Captured image analysis completed');
+      console.log('✅ Ghana AI plate detection completed');
     } catch (error) {
-      console.error('❌ Analysis failed:', error);
+      console.error('❌ Ghana AI detection failed:', error);
       setPlateDetectedFromImage(false);
       setScanResults({
         plateNumber: 'N/A',
